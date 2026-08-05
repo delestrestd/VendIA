@@ -49,19 +49,59 @@ Comme Vinted… mais **sans les contraintes** :
 
 > La caméra arrière (`environment`) est optimisée pour le mobile. HTTPS est requis par le navigateur pour l’accès caméra.
 
+## Brancher un vrai modèle IA
+
+**Non, il n’est pas obligatoire de payer.** Des options gratuites (avec quotas) suffisent pour prototyper.
+
+| Fournisseur | Coût | Vision (photos) | Où prendre la clé |
+|-------------|------|-----------------|-------------------|
+| **Simulation** | Gratuit | Non (faux résultats) | Aucune — mode par défaut |
+| **Google Gemini** | **Gratuit** (quota/jour) | Oui | [aistudio.google.com](https://aistudio.google.com/apikey) |
+| **OpenRouter** | Gratuit *ou* payant | Selon le modèle (`:free`) | [openrouter.ai](https://openrouter.ai) |
+| **xAI / SpaceXAI** | Payant (crédits) | Oui | [console.x.ai](https://console.x.ai) |
+| **Personnalisé** | Selon l’hébergeur | Si le modèle le gère | Ta base URL OpenAI-compatible |
+
+### Dans l’app
+1. Ouvre **⚙ Réglages** (en haut à droite).
+2. Choisis un fournisseur.
+3. Colle la clé API + le nom du modèle.
+4. **Tester** puis **Enregistrer**.
+5. Prends une photo → **Lancer l’analyse IA**.
+
+### Contrat technique (`window.VendIA`)
+
+```js
+// Retourne une annonce pré-remplie
+await VendIA.analyzeProduct([dataUrl1, dataUrl2?], optionalConfig?, abortSignal?)
+// → { title, desc, category, brand, size, condition, price }
+```
+
+Les appels passent par :
+- **Gemini** → API native `generateContent` + image base64
+- **OpenRouter / xAI / custom** → `POST /chat/completions` (compatible OpenAI) + `image_url`
+
+> **Sécurité** : la clé est stockée en `localStorage` sur l’appareil (pratique pour un prototype). Pour un vrai produit public, mets un **petit backend / proxy** pour ne jamais exposer la clé dans le navigateur.
+
+> **CORS** : si un fournisseur bloque le navigateur, utilise un proxy OpenAI-compatible (mode « Personnalisé ») ou un backend.
+
+### Recommandation pour démarrer
+1. Reste en **Simulation** pour peaufiner l’UX.  
+2. Passe à **Gemini** (gratuit) dès que tu veux de vrais résultats photo.  
+3. Monte en gamme (xAI / modèles payants) seulement si le volume ou la qualité le demande.
+
 ## Stack
 
 - HTML / CSS / JavaScript pur (un seul fichier)
 - Tailwind CSS (CDN)
 - Font Awesome
 - Stockage local (`localStorage`)
-- Simulation d’agent IA (prêt à brancher un vrai modèle de vision)
+- Couche IA pluggable (`VendIA.analyzeProduct`)
 
 ## Structure
 
 ```
 VENDIA/
-├── index.html    # App complète
+├── index.html    # App complète + providers IA
 └── README.md
 ```
 

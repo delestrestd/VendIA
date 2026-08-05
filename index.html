@@ -161,11 +161,19 @@
           <p class="text-[10px] text-gray-400 leading-none mt-0.5 truncate">sans contraintes</p>
         </div>
       </div>
-      <button type="button" onclick="toggleDarkMode()" id="theme-btn"
-              class="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition btn-press"
-              aria-label="Changer le thème">
-        <i class="fas fa-moon text-sm" id="theme-icon"></i>
-      </button>
+      <div class="flex items-center gap-0.5">
+        <button type="button" onclick="openSettings()" id="settings-btn"
+                class="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition btn-press relative"
+                aria-label="Réglages IA">
+          <i class="fas fa-sliders text-sm"></i>
+          <span id="ai-mode-dot" class="absolute top-2 right-2 w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 ring-2 ring-white dark:ring-gray-900"></span>
+        </button>
+        <button type="button" onclick="toggleDarkMode()" id="theme-btn"
+                class="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition btn-press"
+                aria-label="Changer le thème">
+          <i class="fas fa-moon text-sm" id="theme-icon"></i>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -308,6 +316,8 @@
 
         <p id="photo-count-label" class="text-center text-xs text-gray-400"></p>
 
+        <p id="ai-provider-hint" class="text-center text-[11px] text-gray-400 -mt-1"></p>
+
         <button type="button" id="btn-analyze" onclick="startAIAnalysis()" disabled
                 class="w-full py-3.5 rounded-2xl font-bold text-white bg-gray-300 dark:bg-gray-700 cursor-not-allowed transition">
           <i class="fas fa-robot mr-2"></i> Lancer l’analyse IA
@@ -323,7 +333,8 @@
           </div>
         </div>
         <h2 class="text-xl font-bold mb-1">Agent IA en action…</h2>
-        <p id="ai-status" class="text-gray-500 dark:text-gray-400 text-sm mb-8">Analyse de l’image</p>
+        <p id="ai-status" class="text-gray-500 dark:text-gray-400 text-sm mb-2">Analyse de l’image</p>
+        <p id="ai-status-provider" class="text-[11px] text-gray-400 mb-6"></p>
         <div class="max-w-xs mx-auto space-y-3 text-left text-sm">
           <div id="ai-step-1" class="flex items-center gap-3 opacity-40 transition">
             <i class="fas fa-circle-notch fa-spin text-primary w-5 text-center"></i>
@@ -338,6 +349,10 @@
             <span>État & prix de marché</span>
           </div>
         </div>
+        <button type="button" id="btn-cancel-ai" onclick="cancelAIAnalysis()"
+                class="mt-8 text-sm font-medium text-gray-500 hover:text-red-500 transition">
+          Annuler
+        </button>
       </div>
 
       <!-- Étape 3 : Formulaire -->
@@ -512,6 +527,86 @@
         </div>
       </div>
       <div id="detail-content" class="px-4 pb-8"></div>
+    </div>
+  </div>
+
+  <!-- ========== SHEET RÉGLAGES IA ========== -->
+  <div id="settings-overlay" class="fixed inset-0 z-[60] hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="absolute inset-0 bg-black/50 sheet-backdrop" onclick="closeSettings()"></div>
+    <div class="absolute bottom-0 left-0 right-0 max-w-lg mx-auto max-h-[92dvh] overflow-y-auto rounded-t-3xl bg-white dark:bg-gray-900 slide-up safe-bottom">
+      <div class="sticky top-0 z-10 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md pt-3 pb-2 px-4 border-b border-gray-100 dark:border-gray-800">
+        <div class="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600 mx-auto mb-2"></div>
+        <div class="flex justify-between items-center">
+          <h2 id="settings-title" class="font-bold text-lg">Modèle IA</h2>
+          <button type="button" onclick="closeSettings()" class="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center btn-press" aria-label="Fermer">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+      <div class="px-4 py-4 space-y-4 pb-10">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          Branche le modèle de ton choix. Par défaut : <strong>simulation gratuite</strong> (pas de clé).
+        </p>
+
+        <div>
+          <label for="cfg-provider" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Fournisseur</label>
+          <select id="cfg-provider" onchange="onProviderChange()"
+                  class="w-full px-3 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none focus:ring-2 focus:ring-primary/30">
+            <option value="mock">Simulation (gratuit, hors ligne)</option>
+            <option value="gemini">Google Gemini (gratuit / quota)</option>
+            <option value="openrouter">OpenRouter (modèles gratuits + payants)</option>
+            <option value="xai">xAI / SpaceXAI (payant)</option>
+            <option value="openai_compatible">Personnalisé (API OpenAI-compatible)</option>
+          </select>
+        </div>
+
+        <div id="cfg-paid-note" class="hidden text-xs p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 text-amber-900 dark:text-amber-200"></div>
+
+        <div id="cfg-fields" class="space-y-3 hidden">
+          <div>
+            <label for="cfg-apikey" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Clé API</label>
+            <div class="relative">
+              <input id="cfg-apikey" type="password" autocomplete="off" placeholder="colle ta clé ici"
+                     class="w-full px-3 py-3 pr-11 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none focus:ring-2 focus:ring-primary/30" />
+              <button type="button" onclick="toggleKeyVisibility()" class="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 text-gray-400" aria-label="Afficher la clé">
+                <i class="fas fa-eye text-sm" id="cfg-key-eye"></i>
+              </button>
+            </div>
+            <p class="text-[11px] text-gray-400 mt-1">Stockée uniquement sur cet appareil (localStorage). Ne partage pas ta clé.</p>
+          </div>
+
+          <div>
+            <label for="cfg-model" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Modèle</label>
+            <input id="cfg-model" type="text" autocomplete="off"
+                   class="w-full px-3 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
+
+          <div id="cfg-baseurl-wrap">
+            <label for="cfg-baseurl" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Base URL</label>
+            <input id="cfg-baseurl" type="url" autocomplete="off" placeholder="https://…"
+                   class="w-full px-3 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none focus:ring-2 focus:ring-primary/30" />
+            <p class="text-[11px] text-gray-400 mt-1">Pour un proxy maison ou un autre hébergeur compatible OpenAI.</p>
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800 text-xs text-gray-500 dark:text-gray-400 space-y-1.5">
+          <p class="font-semibold text-gray-700 dark:text-gray-300">Gratuit ou payant ?</p>
+          <p>• <strong>Gemini</strong> — gratuit avec quota (idéal pour démarrer)</p>
+          <p>• <strong>OpenRouter</strong> — modèles gratuits limités + payants</p>
+          <p>• <strong>xAI / GPT</strong> — payant (souvent plus stable)</p>
+          <p>• <strong>Simulation</strong> — 0 €, pour tester l’app</p>
+        </div>
+
+        <div class="flex gap-2">
+          <button type="button" onclick="saveSettings()" class="flex-1 py-3 rounded-xl font-bold text-white bg-primary btn-press">
+            Enregistrer
+          </button>
+          <button type="button" onclick="testAIConnection()" id="btn-test-ai" class="px-4 py-3 rounded-xl font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 btn-press">
+            Tester
+          </button>
+        </div>
+        <p id="cfg-test-result" class="text-xs text-center text-gray-400 min-h-[1rem]"></p>
+      </div>
     </div>
   </div>
 
@@ -929,7 +1024,285 @@
       haptic(10);
     }
 
-    // ========== AI ==========
+    // ========== AI PROVIDERS (pluggable) ==========
+    /*
+      Branche un vrai modèle ici. Contrat unique :
+        analyzeProduct(imageDataUrls: string[]) -> Promise<ListingDraft>
+
+      ListingDraft = {
+        title, desc, category, brand, size, condition, price (number €)
+      }
+
+      Fournisseurs :
+        - mock              : simulation locale (défaut, gratuit)
+        - gemini            : Google AI Studio (quota gratuit)
+        - openrouter        : OpenAI-compatible + modèles gratuits
+        - xai               : xAI / SpaceXAI (payant, vision)
+        - openai_compatible : base URL + modèle + clé au choix
+    */
+    const CATEGORIES = ['Vêtements', 'Chaussures', 'Accessoires', 'Sacs', 'Bijoux', 'Autre'];
+    const CONDITIONS = ['Neuf avec étiquette', 'Neuf sans étiquette', 'Très bon état', 'Bon état', 'Satisfaisant'];
+
+    const AI_PRESETS = {
+      mock: {
+        label: 'Simulation',
+        free: true,
+        needsKey: false,
+        model: '',
+        baseUrl: '',
+        note: 'Aucun appel réseau. Idéal pour tester l’app sans clé.'
+      },
+      gemini: {
+        label: 'Google Gemini',
+        free: true,
+        needsKey: true,
+        model: 'gemini-2.0-flash',
+        baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+        note: 'Gratuit avec quota journalier. Clé gratuite sur aistudio.google.com — pas de carte bancaire en général.'
+      },
+      openrouter: {
+        label: 'OpenRouter',
+        free: true,
+        needsKey: true,
+        model: 'google/gemini-2.0-flash-exp:free',
+        baseUrl: 'https://openrouter.ai/api/v1',
+        note: 'Plusieurs modèles gratuits (suffixe :free) + payants. Une clé unique pour tous.'
+      },
+      xai: {
+        label: 'xAI / SpaceXAI',
+        free: false,
+        needsKey: true,
+        model: 'grok-2-vision-1212',
+        baseUrl: 'https://api.x.ai/v1',
+        note: 'Payant (crédits console.x.ai). API compatible OpenAI, vision native.'
+      },
+      openai_compatible: {
+        label: 'Personnalisé',
+        free: null,
+        needsKey: true,
+        model: 'gpt-4o-mini',
+        baseUrl: 'https://api.openai.com/v1',
+        note: 'Toute API compatible OpenAI (proxy, Ollama avec vision, Azure, etc.).'
+      }
+    };
+
+    const AI_CONFIG_KEY = 'vendia_ai_config';
+    const DEFAULT_AI_CONFIG = { provider: 'mock', apiKey: '', model: '', baseUrl: '' };
+
+    function loadAIConfig() {
+      try {
+        return { ...DEFAULT_AI_CONFIG, ...JSON.parse(localStorage.getItem(AI_CONFIG_KEY) || '{}') };
+      } catch {
+        return { ...DEFAULT_AI_CONFIG };
+      }
+    }
+
+    function saveAIConfig(cfg) {
+      localStorage.setItem(AI_CONFIG_KEY, JSON.stringify(cfg));
+    }
+
+    function getEffectiveAIConfig() {
+      const cfg = loadAIConfig();
+      const preset = AI_PRESETS[cfg.provider] || AI_PRESETS.mock;
+      return {
+        provider: cfg.provider in AI_PRESETS ? cfg.provider : 'mock',
+        apiKey: (cfg.apiKey || '').trim(),
+        model: (cfg.model || preset.model || '').trim(),
+        baseUrl: (cfg.baseUrl || preset.baseUrl || '').replace(/\/$/, ''),
+        label: preset.label,
+        free: preset.free,
+        needsKey: preset.needsKey
+      };
+    }
+
+    function updateAIModeUI() {
+      const cfg = getEffectiveAIConfig();
+      const dot = document.getElementById('ai-mode-dot');
+      const hint = document.getElementById('ai-provider-hint');
+      if (dot) {
+        dot.className = 'absolute top-2 right-2 w-2 h-2 rounded-full ring-2 ring-white dark:ring-gray-900 ' +
+          (cfg.provider === 'mock' ? 'bg-gray-300 dark:bg-gray-600' : cfg.free === false ? 'bg-accent' : 'bg-emerald-500');
+      }
+      if (hint) {
+        const mode = cfg.provider === 'mock'
+          ? 'Mode simulation (réglages ⚙ pour brancher un vrai modèle)'
+          : `Modèle : ${cfg.label}${cfg.model ? ' · ' + cfg.model : ''}`;
+        hint.textContent = mode;
+      }
+    }
+
+    // ----- Settings sheet -----
+    function openSettings() {
+      const cfg = loadAIConfig();
+      const preset = AI_PRESETS[cfg.provider] || AI_PRESETS.mock;
+      document.getElementById('cfg-provider').value = cfg.provider || 'mock';
+      document.getElementById('cfg-apikey').value = cfg.apiKey || '';
+      document.getElementById('cfg-apikey').type = 'password';
+      document.getElementById('cfg-key-eye').className = 'fas fa-eye text-sm';
+      document.getElementById('cfg-model').value = cfg.model || preset.model;
+      document.getElementById('cfg-baseurl').value = cfg.baseUrl || preset.baseUrl;
+      document.getElementById('cfg-test-result').textContent = '';
+      onProviderChange(true);
+      document.getElementById('settings-overlay').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeSettings() {
+      document.getElementById('settings-overlay').classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    function onProviderChange(keepValues = false) {
+      const provider = document.getElementById('cfg-provider').value;
+      const preset = AI_PRESETS[provider] || AI_PRESETS.mock;
+      const fields = document.getElementById('cfg-fields');
+      const note = document.getElementById('cfg-paid-note');
+      const baseWrap = document.getElementById('cfg-baseurl-wrap');
+
+      fields.classList.toggle('hidden', provider === 'mock');
+      baseWrap.classList.toggle('hidden', provider === 'gemini');
+
+      if (!keepValues) {
+        document.getElementById('cfg-model').value = preset.model;
+        document.getElementById('cfg-baseurl').value = preset.baseUrl;
+      } else {
+        if (!document.getElementById('cfg-model').value) {
+          document.getElementById('cfg-model').value = preset.model;
+        }
+        if (!document.getElementById('cfg-baseurl').value) {
+          document.getElementById('cfg-baseurl').value = preset.baseUrl;
+        }
+      }
+
+      if (preset.note) {
+        note.classList.remove('hidden');
+        note.innerHTML = (preset.free === false
+          ? `<i class="fas fa-coins mr-1"></i> `
+          : `<i class="fas fa-gift mr-1"></i> `) + escapeHtml(preset.note);
+      } else {
+        note.classList.add('hidden');
+      }
+    }
+
+    function toggleKeyVisibility() {
+      const input = document.getElementById('cfg-apikey');
+      const eye = document.getElementById('cfg-key-eye');
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      eye.className = show ? 'fas fa-eye-slash text-sm' : 'fas fa-eye text-sm';
+    }
+
+    function saveSettings() {
+      const provider = document.getElementById('cfg-provider').value;
+      const cfg = {
+        provider,
+        apiKey: document.getElementById('cfg-apikey').value.trim(),
+        model: document.getElementById('cfg-model').value.trim(),
+        baseUrl: document.getElementById('cfg-baseurl').value.trim().replace(/\/$/, '')
+      };
+      if (AI_PRESETS[provider]?.needsKey && !cfg.apiKey) {
+        toast('Clé API manquante pour ce fournisseur', 'err');
+        return;
+      }
+      saveAIConfig(cfg);
+      updateAIModeUI();
+      closeSettings();
+      toast(provider === 'mock' ? 'Mode simulation actif' : `IA : ${AI_PRESETS[provider].label}`);
+      haptic(12);
+    }
+
+    async function testAIConnection() {
+      const resultEl = document.getElementById('cfg-test-result');
+      const provider = document.getElementById('cfg-provider').value;
+      const draftCfg = {
+        provider,
+        apiKey: document.getElementById('cfg-apikey').value.trim(),
+        model: document.getElementById('cfg-model').value.trim(),
+        baseUrl: document.getElementById('cfg-baseurl').value.trim().replace(/\/$/, '')
+      };
+      resultEl.textContent = 'Test en cours…';
+      resultEl.className = 'text-xs text-center text-gray-400 min-h-[1rem]';
+      try {
+        if (provider === 'mock') {
+          resultEl.textContent = '✓ Simulation OK (aucun réseau)';
+          resultEl.className = 'text-xs text-center text-emerald-600 dark:text-emerald-400 min-h-[1rem]';
+          return;
+        }
+        if (!draftCfg.apiKey) throw new Error('Clé API manquante');
+        // Tiny 1×1 JPEG for a cheap connectivity check (not a real product)
+        const pixel = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAGcP//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//Z';
+        const out = await VendIA.analyzeProduct([pixel], draftCfg);
+        resultEl.textContent = `✓ Connexion OK — exemple : « ${out.title.slice(0, 40)} »`;
+        resultEl.className = 'text-xs text-center text-emerald-600 dark:text-emerald-400 min-h-[1rem]';
+      } catch (err) {
+        resultEl.textContent = '✗ ' + (err.message || 'Échec');
+        resultEl.className = 'text-xs text-center text-red-500 min-h-[1rem]';
+      }
+    }
+
+    // ----- Shared prompt + parsing -----
+    function buildAnalysisPrompt() {
+      return `Tu es l'agent vision de VendIA, une app de revente d'articles de seconde main (style Vinted).
+Analyse la ou les photo(s) d'un article et renvoie UNIQUEMENT un JSON valide (pas de markdown, pas de texte autour) avec exactement ces clés :
+{
+  "title": "titre court attractif en français (max 70 car.)",
+  "desc": "description honnête 2-4 phrases en français pour une annonce",
+  "category": "une parmi: ${CATEGORIES.join(' | ')}",
+  "brand": "marque ou Inconnue",
+  "size": "taille visible ou estimée, sinon Unique",
+  "condition": "une parmi: ${CONDITIONS.join(' | ')}",
+  "price": nombre entier ou décimal en euros (prix de revente réaliste marché FR/EU)
+}
+Si l'image est floue ou non identifiable, fais de ton mieux et indique l'incertitude dans la description.
+Prix : réaliste pour la seconde main, pas le prix neuf.`;
+    }
+
+    function parseListingJSON(text) {
+      if (!text) throw new Error('Réponse vide du modèle');
+      let raw = String(text).trim();
+      // strip ```json fences if any
+      const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+      if (fence) raw = fence[1].trim();
+      const start = raw.indexOf('{');
+      const end = raw.lastIndexOf('}');
+      if (start === -1 || end === -1) throw new Error('JSON introuvable dans la réponse');
+      const data = JSON.parse(raw.slice(start, end + 1));
+      return normalizeListing(data);
+    }
+
+    function normalizeListing(data) {
+      let category = String(data.category || 'Autre').trim();
+      if (!CATEGORIES.includes(category)) {
+        const hit = CATEGORIES.find(c => category.toLowerCase().includes(c.toLowerCase()));
+        category = hit || 'Autre';
+      }
+      let condition = String(data.condition || 'Bon état').trim();
+      if (!CONDITIONS.includes(condition)) {
+        const hit = CONDITIONS.find(c => condition.toLowerCase().includes(c.toLowerCase().slice(0, 8)));
+        condition = hit || 'Bon état';
+      }
+      let price = parseFloat(data.price);
+      if (!Number.isFinite(price) || price < 1) price = 15;
+      price = Math.round(price * 2) / 2;
+
+      return {
+        title: String(data.title || 'Article à vendre').trim().slice(0, 80),
+        desc: String(data.desc || data.description || '').trim().slice(0, 500),
+        category,
+        brand: String(data.brand || 'Inconnue').trim().slice(0, 40),
+        size: String(data.size || 'Unique').trim().slice(0, 20),
+        condition,
+        price
+      };
+    }
+
+    function splitDataUrl(dataUrl) {
+      const m = String(dataUrl).match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+      if (!m) throw new Error('Image invalide');
+      return { mime: m[1], base64: m[2] };
+    }
+
+    // ----- Mock provider -----
     const AI_TEMPLATES = [
       { title: "T-shirt Nike Sportswear noir", desc: "T-shirt Nike original en coton. Couleur noire, logo Swoosh. Confortable pour le quotidien ou le sport. Aucun défaut visible.", category: "Vêtements", brand: "Nike", size: "M", condition: "Très bon état", price: 18 },
       { title: "Jean Levi's 501 vintage", desc: "Jean Levi's 501 coupe droite, denim délavé. Boutons originaux, étiquette rouge. Style intemporel, déjà bien formé.", category: "Vêtements", brand: "Levi's", size: "32", condition: "Bon état", price: 35 },
@@ -941,7 +1314,165 @@
       { title: "Robe Zara imprimée", desc: "Robe légère à motifs floraux. Coupe fluide, longueur midi. Idéale été. Portée 2-3 fois.", category: "Vêtements", brand: "Zara", size: "M", condition: "Très bon état", price: 24 }
     ];
 
+    async function analyzeMock(_images, signal) {
+      await sleep(1800, signal);
+      return AI_TEMPLATES[Math.floor(Math.random() * AI_TEMPLATES.length)];
+    }
+
+    // ----- Gemini native -----
+    async function analyzeGemini(images, cfg, signal) {
+      const model = cfg.model || AI_PRESETS.gemini.model;
+      const url = `${cfg.baseUrl || AI_PRESETS.gemini.baseUrl}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(cfg.apiKey)}`;
+      const parts = [{ text: buildAnalysisPrompt() }];
+      // first photo is primary; send up to 3 for multi-angle
+      for (const img of images.slice(0, 3)) {
+        const { mime, base64 } = splitDataUrl(img);
+        parts.push({ inline_data: { mime_type: mime, data: base64 } });
+      }
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts }],
+          generationConfig: {
+            temperature: 0.4,
+            responseMimeType: 'application/json'
+          }
+        }),
+        signal
+      });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        throw new Error(humanizeApiError('Gemini', res.status, errText));
+      }
+      const json = await res.json();
+      const text = json?.candidates?.[0]?.content?.parts?.map(p => p.text).filter(Boolean).join('\n') || '';
+      return parseListingJSON(text);
+    }
+
+    // ----- OpenAI-compatible (xAI, OpenRouter, custom) -----
+    async function analyzeOpenAICompatible(images, cfg, signal) {
+      const base = cfg.baseUrl || 'https://api.openai.com/v1';
+      const model = cfg.model || 'gpt-4o-mini';
+      const content = [{ type: 'text', text: buildAnalysisPrompt() }];
+      for (const img of images.slice(0, 3)) {
+        content.push({ type: 'image_url', image_url: { url: img } });
+      }
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${cfg.apiKey}`
+      };
+      // OpenRouter optional headers
+      if (base.includes('openrouter.ai')) {
+        headers['HTTP-Referer'] = location.origin || 'https://vendia.app';
+        headers['X-Title'] = 'VendIA';
+      }
+      const res = await fetch(`${base}/chat/completions`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model,
+          temperature: 0.4,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: 'Tu réponds uniquement en JSON valide pour pré-remplir une annonce de revente.' },
+            { role: 'user', content }
+          ]
+        }),
+        signal
+      });
+      if (!res.ok) {
+        // some models reject response_format — retry without it once
+        if (res.status === 400) {
+          const retry = await fetch(`${base}/chat/completions`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              model,
+              temperature: 0.4,
+              messages: [
+                { role: 'system', content: 'Tu réponds uniquement en JSON valide pour pré-remplir une annonce de revente.' },
+                { role: 'user', content }
+              ]
+            }),
+            signal
+          });
+          if (!retry.ok) {
+            const errText = await retry.text().catch(() => '');
+            throw new Error(humanizeApiError('API', retry.status, errText));
+          }
+          const j = await retry.json();
+          return parseListingJSON(j?.choices?.[0]?.message?.content);
+        }
+        const errText = await res.text().catch(() => '');
+        throw new Error(humanizeApiError('API', res.status, errText));
+      }
+      const json = await res.json();
+      return parseListingJSON(json?.choices?.[0]?.message?.content);
+    }
+
+    function humanizeApiError(who, status, body) {
+      let detail = '';
+      try {
+        const j = JSON.parse(body);
+        detail = j.error?.message || j.message || j.error?.status || '';
+      } catch {
+        detail = (body || '').slice(0, 120);
+      }
+      if (status === 401 || status === 403) return `${who} : clé invalide ou accès refusé`;
+      if (status === 429) return `${who} : quota dépassé — réessaie plus tard ou change de modèle`;
+      if (status === 404) return `${who} : modèle introuvable — vérifie le nom du modèle`;
+      if (status >= 500) return `${who} : serveur indisponible (${status})`;
+      return `${who} erreur ${status}${detail ? ' — ' + detail : ''}`;
+    }
+
+    function sleep(ms, signal) {
+      return new Promise((resolve, reject) => {
+        if (signal?.aborted) return reject(new DOMException('Aborted', 'AbortError'));
+        const t = setTimeout(resolve, ms);
+        signal?.addEventListener('abort', () => {
+          clearTimeout(t);
+          reject(new DOMException('Aborted', 'AbortError'));
+        }, { once: true });
+      });
+    }
+
+    /** Point d’entrée unique — à utiliser partout */
+    const VendIA = {
+      /**
+       * @param {string[]} imageDataUrls
+       * @param {object} [overrideCfg] config temporaire (pour le bouton Tester)
+       * @param {AbortSignal} [signal]
+       */
+      async analyzeProduct(imageDataUrls, overrideCfg, signal) {
+        if (!imageDataUrls?.length) throw new Error('Aucune image');
+        const cfg = overrideCfg
+          ? {
+              ...AI_PRESETS[overrideCfg.provider],
+              ...overrideCfg,
+              baseUrl: (overrideCfg.baseUrl || AI_PRESETS[overrideCfg.provider]?.baseUrl || '').replace(/\/$/, ''),
+              model: overrideCfg.model || AI_PRESETS[overrideCfg.provider]?.model || '',
+              apiKey: (overrideCfg.apiKey || '').trim()
+            }
+          : getEffectiveAIConfig();
+
+        const provider = cfg.provider || 'mock';
+        if (provider !== 'mock' && !cfg.apiKey) {
+          throw new Error('Configure une clé API dans les réglages ⚙');
+        }
+
+        if (provider === 'mock') return analyzeMock(imageDataUrls, signal);
+        if (provider === 'gemini') return analyzeGemini(imageDataUrls, cfg, signal);
+        // openrouter, xai, openai_compatible
+        return analyzeOpenAICompatible(imageDataUrls, cfg, signal);
+      }
+    };
+    // expose for console debugging / future modules
+    window.VendIA = VendIA;
+
+    // ----- UI flow -----
     let aiTimers = [];
+    let aiAbort = null;
 
     function setStepper(step) {
       sellStep = step;
@@ -961,8 +1492,6 @@
           dot.textContent = String(i);
         }
       }
-      document.getElementById('step-line-1').style.background = step > 1 ? '#0f766e' : '';
-      document.getElementById('step-line-2').style.background = step > 2 ? '#0f766e' : '';
       if (step === 1) {
         document.getElementById('step-line-1').className = 'step-line h-0.5 flex-1 bg-gray-200 dark:bg-gray-700 mb-4 -mx-1';
         document.getElementById('step-line-2').className = 'step-line h-0.5 flex-1 bg-gray-200 dark:bg-gray-700 mb-4 -mx-1';
@@ -971,52 +1500,108 @@
       if (step > 2) document.getElementById('step-line-2').className = 'step-line h-0.5 flex-1 bg-primary mb-4 -mx-1';
     }
 
-    function startAIAnalysis() {
-      if (!photos.length || analyzing) return;
-      analyzing = true;
-      haptic(20);
+    function markAIStep(n, done = true) {
+      const el = document.getElementById('ai-step-' + n);
+      if (!el) return;
+      el.classList.remove('opacity-40');
+      if (done) {
+        el.querySelector('i').className = 'fas fa-check text-green-500 w-5 text-center';
+      } else {
+        el.querySelector('i').className = 'fas fa-circle-notch fa-spin text-primary w-5 text-center';
+      }
+    }
 
-      document.getElementById('step-photo').classList.add('hidden');
-      document.getElementById('step-form').classList.add('hidden');
-      document.getElementById('step-analyzing').classList.remove('hidden');
-      document.getElementById('ai-thumb').src = photos[0];
-      setStepper(2);
-
-      // reset AI steps
+    function resetAIStepsUI() {
       ['ai-step-1', 'ai-step-2', 'ai-step-3'].forEach(id => {
         const el = document.getElementById(id);
         el.classList.add('opacity-40');
         el.querySelector('i').className = 'fas fa-circle-notch fa-spin text-primary w-5 text-center';
       });
+    }
 
-      const statuses = [
-        'Analyse de l’image…',
-        'Identification marque & modèle…',
-        'Estimation état & prix…'
-      ];
+    function cancelAIAnalysis() {
+      if (aiAbort) aiAbort.abort();
       aiTimers.forEach(clearTimeout);
       aiTimers = [];
+      analyzing = false;
+      document.getElementById('step-analyzing').classList.add('hidden');
+      document.getElementById('step-photo').classList.remove('hidden');
+      setStepper(1);
+      toast('Analyse annulée');
+    }
 
-      [0, 1, 2].forEach(i => {
-        aiTimers.push(setTimeout(() => {
-          const el = document.getElementById('ai-step-' + (i + 1));
-          el.classList.remove('opacity-40');
-          el.querySelector('i').className = 'fas fa-check text-green-500 w-5 text-center';
-          document.getElementById('ai-status').textContent = statuses[i];
-          haptic(8);
-        }, 700 + i * 850));
-      });
+    async function startAIAnalysis() {
+      if (!photos.length || analyzing) return;
 
+      const cfg = getEffectiveAIConfig();
+      if (cfg.needsKey && !cfg.apiKey) {
+        toast('Configure un modèle dans ⚙ Réglages', 'err');
+        openSettings();
+        return;
+      }
+
+      analyzing = true;
+      haptic(20);
+      aiAbort = new AbortController();
+
+      document.getElementById('step-photo').classList.add('hidden');
+      document.getElementById('step-form').classList.add('hidden');
+      document.getElementById('step-analyzing').classList.remove('hidden');
+      document.getElementById('ai-thumb').src = photos[0];
+      document.getElementById('ai-status').textContent = 'Envoi de l’image au modèle…';
+      document.getElementById('ai-status-provider').textContent =
+        cfg.provider === 'mock' ? 'Simulation locale' : `${cfg.label} · ${cfg.model || 'modèle par défaut'}`;
+      setStepper(2);
+      resetAIStepsUI();
+      markAIStep(1, false);
+
+      aiTimers.forEach(clearTimeout);
+      aiTimers = [];
+      // progressive UI while waiting for the network
       aiTimers.push(setTimeout(() => {
-        const result = AI_TEMPLATES[Math.floor(Math.random() * AI_TEMPLATES.length)];
+        markAIStep(1, true);
+        markAIStep(2, false);
+        document.getElementById('ai-status').textContent = 'Identification marque & modèle…';
+        haptic(6);
+      }, 900));
+      aiTimers.push(setTimeout(() => {
+        markAIStep(2, true);
+        markAIStep(3, false);
+        document.getElementById('ai-status').textContent = 'Estimation état & prix…';
+        haptic(6);
+      }, 2200));
+
+      try {
+        const result = await VendIA.analyzeProduct(photos, null, aiAbort.signal);
+        aiTimers.forEach(clearTimeout);
+        aiTimers = [];
+        markAIStep(1, true);
+        markAIStep(2, true);
+        markAIStep(3, true);
         fillForm(result);
         document.getElementById('step-analyzing').classList.add('hidden');
         document.getElementById('step-form').classList.remove('hidden');
         setStepper(3);
         analyzing = false;
         haptic([12, 30, 12]);
-        toast('Annonce pré-remplie');
-      }, 3200));
+        toast(cfg.provider === 'mock' ? 'Annonce simulée' : 'Annonce pré-remplie par l’IA');
+      } catch (err) {
+        aiTimers.forEach(clearTimeout);
+        aiTimers = [];
+        analyzing = false;
+        if (err?.name === 'AbortError') return;
+        console.error(err);
+        document.getElementById('step-analyzing').classList.add('hidden');
+        document.getElementById('step-photo').classList.remove('hidden');
+        setStepper(1);
+        const msg = err?.message || 'Analyse impossible';
+        // CORS tip
+        if (/Failed to fetch|NetworkError|CORS/i.test(msg)) {
+          toast('Réseau / CORS bloqué — utilise un proxy ou un autre fournisseur', 'err');
+        } else {
+          toast(msg, 'err');
+        }
+      }
     }
 
     function fillForm(data) {
@@ -1153,6 +1738,7 @@
     }
 
     function resetSellFlow(showPhoto = true) {
+      if (aiAbort) aiAbort.abort();
       aiTimers.forEach(clearTimeout);
       aiTimers = [];
       analyzing = false;
@@ -1177,13 +1763,17 @@
 
     // ========== KEYBOARD / BACK ==========
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') closeDetail();
+      if (e.key === 'Escape') {
+        closeDetail();
+        closeSettings();
+      }
     });
 
     // ========== INIT ==========
     renderFilters();
     renderListings();
     setStepper(1);
+    updateAIModeUI();
   </script>
 </body>
 </html>
