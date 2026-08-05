@@ -31,13 +31,23 @@ Comme Vinted… mais **sans les contraintes** :
 | **Thème** | Mode sombre + préférence système |
 | **Partage** | Web Share API, WhatsApp, X, Facebook |
 
+## Liens
+
+- **Repo** : [github.com/delestrestd/VendIA](https://github.com/delestrestd/VendIA)
+- **Démo mobile (GitHub Pages)** : [delestrestd.github.io/VendIA](https://delestrestd.github.io/VendIA/)
+
 ## Comment tester
 
-1. Ouvre `index.html` **sur un téléphone** (ou DevTools → mode mobile).
+### Sur téléphone (recommandé)
+1. Ouvre la [démo GitHub Pages](https://delestrestd.github.io/VendIA/) (HTTPS = caméra OK).
 2. Autorise l’appareil photo si demandé.
 3. Flux : **Caméra** → **Analyse IA** → ajuste le prix → **Publier**.
 
-> Sur ordinateur, utilise la galerie. La caméra arrière (`environment`) est optimisée pour le mobile.
+### En local
+1. Ouvre `index.html` dans un navigateur (idéalement mobile / DevTools mode mobile).
+2. Même flux. Sur desktop, préfère la **Galerie**.
+
+> La caméra arrière (`environment`) est optimisée pour le mobile. HTTPS est requis par le navigateur pour l’accès caméra.
 
 ## Stack
 
