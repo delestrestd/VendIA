@@ -1,14 +1,22 @@
-# Archives
+# Pack IA portable (trop lourd pour git — copier via SSD)
+ollama/
+tools/cloudflared.exe
+_tmp_ollama.zip
+vendia_runtime.json
+
+# Archives locales
 *.zip
+VendIA.zip
 
 # OS / IDE
-.DS_Store
 Thumbs.db
+Desktop.ini
+.DS_Store
 .idea/
 .vscode/
 *.swp
 *~
 
-# Local env
+# Env secrets
 .env
 .env.*
