@@ -130,7 +130,7 @@ class Handler(BaseHTTPRequestHandler):
             "message": "",
         }
         try:
-            status, raw, _ = ollama_get("/api/tags", timeout=4)
+            status, raw, _ = ollama_get("/api/tags", timeout=1.5)
             if status == 200:
                 payload = json.loads(raw.decode("utf-8", errors="replace"))
                 models = [m.get("name", "") for m in payload.get("models", [])]
@@ -141,13 +141,14 @@ class Handler(BaseHTTPRequestHandler):
                 info["message"] = (
                     "Prêt — modèle moondream sur le PC"
                     if info["hasMoondream"]
-                    else "Ollama OK mais moondream manquant (lance telecharger-ia-portable.bat)"
+                    else "Ollama OK mais moondream manquant — lance 1-INSTALLER.bat"
                 )
             else:
                 info["message"] = f"Ollama HTTP {status}"
         except Exception as e:
-            info["message"] = f"Ollama injoignable ({e}). Lance Lancer VendIA.bat"
-        self._json(200 if info["ollama"] else 503, info)
+            info["message"] = f"Ollama arrêté. Lance 2-LANCER.bat ({e.__class__.__name__})"
+        # Toujours 200 pour que le navigateur / curl affichent le JSON (ok: true/false)
+        self._json(200, info)
 
     def _proxy(self):
         path = self.path

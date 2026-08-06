@@ -70,16 +70,18 @@ Accès dans l’app : carte **Robot prix** sur l’accueil.
 - **Repo** : [github.com/delestrestd/VendIA](https://github.com/delestrestd/VendIA)
 - **Démo mobile (GitHub Pages)** : [delestrestd.github.io/VendIA](https://delestrestd.github.io/VendIA/)
 
-## Comment tester
+## Installation (lisible)
 
-### Sur téléphone (recommandé)
-1. Ouvre la [démo GitHub Pages](https://delestrestd.github.io/VendIA/) (HTTPS = caméra OK).
-2. Flux : **Vue d’ensemble** (+ étiquette si possible) → **Analyse IA** → ajuste le prix → **Publier**.
-3. Publie 2–3 annonces : le robot prix commence à afficher des médianes marché.
+**Guide pas à pas :** [`INSTALLATION.md`](INSTALLATION.md)
 
-### En local
-1. Ouvre `index.html` dans un navigateur (idéalement mobile / DevTools mode mobile).
-2. Même flux. Sur desktop, préfère la **Galerie**.
+| Ordre | Fichier | Quand |
+|-------|---------|--------|
+| 0 | `0-DIAGNOSTIC.bat` | Si ça ne marche pas |
+| **1** | **`1-INSTALLER.bat`** | **Une fois** (télécharge Ollama + moondream) |
+| **2** | **`2-LANCER.bat`** | **Chaque usage** (allume le serveur) |
+| 3 | Navigateur | **http://127.0.0.1:8765/** · Tel : `http://IP-PC:8765/` |
+
+> N’ouvre **pas** `index.html` tout seul : sans `2-LANCER.bat`, le serveur IA ne répond pas.
 
 ## Brancher un vrai modèle IA
 
