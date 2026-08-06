@@ -1,10 +1,11 @@
 @echo off
 REM ============================================================================
-REM  VendIA — un seul lanceur (Wi-Fi + 4G/5G)
-REM  - Ollama 11435 (isole, pas DataChef)
-REM  - Passerelle 8765 (app + proxy IA)
-REM  - Tunnel Cloudflare auto (URL dans vendia_runtime.json)
-REM  L'app detecte Wi-Fi vs mobile et choisit le bon chemin.
+REM  VendIA — modele IA sur CET ordinateur + app pour PC / telephone
+REM
+REM  Architecture :
+REM    [Photo tel/PC] --> passerelle :8765 --> Ollama :11435 (moondream sur disque)
+REM
+REM  Le modele ne quitte pas le PC. Telephone = meme Wi-Fi (ou tunnel 4G).
 REM ============================================================================
 setlocal EnableDelayedExpansion
 set "ROOT=%~dp0"
@@ -15,13 +16,22 @@ set "WEB_PORT=8765"
 set "OLLAMA_MODELS=%ROOT%ollama\models"
 set "OLLAMA_EXE=%ROOT%ollama\ollama.exe"
 
+echo.
+echo ============================================================
+echo   VendIA — demarrage (IA hebergee sur ce PC)
+echo ============================================================
+echo.
+
 if not exist "%OLLAMA_EXE%" (
-  echo [ERREUR] ollama manquant — lance telecharger-ia-portable.bat
+  echo [ERREUR] ollama\ollama.exe manquant.
+  echo          Lance d'abord : telecharger-ia-portable.bat
+  echo.
   pause
   exit /b 1
 )
 if not exist "%OLLAMA_MODELS%" mkdir "%OLLAMA_MODELS%"
 
+REM --- IP LAN (telephone) ---
 set "LAN_IP="
 for /f "tokens=2 delims=:" %%A in ('ipconfig ^| findstr /R /C:"IPv4"') do (
   set "CAND=%%A"
@@ -31,73 +41,89 @@ for /f "tokens=2 delims=:" %%A in ('ipconfig ^| findstr /R /C:"IPv4"') do (
 )
 if not defined LAN_IP set "LAN_IP=127.0.0.1"
 
-REM --- Ollama ---
-curl -s -m 1 http://127.0.0.1:!VENDIA_PORT!/api/version >NUL 2>&1
+REM --- Ollama : ecoute locale (la passerelle proxy tout) ---
+curl.exe -s -m 2 http://127.0.0.1:!VENDIA_PORT!/api/version >NUL 2>&1
 if errorlevel 1 (
-  echo [VendIA] Ollama 0.0.0.0:!VENDIA_PORT! ...
-  start "VendIA-Ollama" /MIN cmd /c "set OLLAMA_HOST=0.0.0.0:!VENDIA_PORT!&& set OLLAMA_MODELS=%OLLAMA_MODELS%&& set OLLAMA_ORIGINS=*&& "%OLLAMA_EXE%" serve"
-  timeout /t 4 /nobreak >NUL
+  echo [1/3] Demarrage Ollama sur le port !VENDIA_PORT! ...
+  start "VendIA-Ollama" /MIN cmd /c "set OLLAMA_HOST=127.0.0.1:!VENDIA_PORT!&& set OLLAMA_MODELS=%OLLAMA_MODELS%&& set OLLAMA_ORIGINS=*&& "%OLLAMA_EXE%" serve"
+  set /a WAIT=0
+  :wait_ollama
+  timeout /t 1 /nobreak >NUL
+  curl.exe -s -m 2 http://127.0.0.1:!VENDIA_PORT!/api/version >NUL 2>&1
+  if not errorlevel 1 goto ollama_ok
+  set /a WAIT+=1
+  if !WAIT! LSS 25 goto wait_ollama
+  echo [ERREUR] Ollama ne repond pas sur !VENDIA_PORT!.
+  pause
+  exit /b 1
+) else (
+  echo [1/3] Ollama deja actif ^(port !VENDIA_PORT!^)
 )
+:ollama_ok
 
+REM --- Modele moondream ---
 set "OLLAMA_HOST=127.0.0.1:!VENDIA_PORT!"
 "%OLLAMA_EXE%" list 2>NUL | find /I "moondream" >NUL
 if errorlevel 1 (
-  echo [info] Pull moondream...
+  echo [info] Telechargement moondream dans ollama\models ...
   "%OLLAMA_EXE%" pull moondream
+) else (
+  echo [info] Modele moondream present sur le disque.
 )
 
-REM --- Gateway ---
-curl -s -m 1 http://127.0.0.1:!WEB_PORT!/vendia/runtime.json >NUL 2>&1
-if errorlevel 1 (
-  curl -s -m 1 http://127.0.0.1:!WEB_PORT!/ >NUL 2>&1
+REM --- Passerelle : redemarre proprement pour charger le code a jour ---
+echo [2/3] Passerelle app + proxy IA ^(port !WEB_PORT!^) ...
+for /f "tokens=5" %%P in ('netstat -ano ^| findstr ":%WEB_PORT% " ^| findstr LISTENING') do (
+  echo        Arret ancien process PID %%P sur !WEB_PORT! ...
+  taskkill /PID %%P /F >NUL 2>&1
 )
-curl -s -m 1 http://127.0.0.1:!WEB_PORT!/ >NUL 2>&1
-if errorlevel 1 (
-  echo [VendIA] Passerelle 8765 ...
-  start "VendIA-Gateway" /MIN cmd /c "cd /d "%ROOT%" && python vendia_gateway.py --port !WEB_PORT! --bind 0.0.0.0 --ollama 127.0.0.1:!VENDIA_PORT!"
-  timeout /t 2 /nobreak >NUL
-)
+timeout /t 1 /nobreak >NUL
+start "VendIA-Gateway" /MIN cmd /c "cd /d "%ROOT%" && python vendia_gateway.py --port !WEB_PORT! --bind 0.0.0.0 --ollama 127.0.0.1:!VENDIA_PORT!"
+set /a WAIT=0
+:wait_gw
+timeout /t 1 /nobreak >NUL
+curl.exe -s -m 2 http://127.0.0.1:!WEB_PORT!/vendia/health >NUL 2>&1
+if not errorlevel 1 goto gw_ok
+set /a WAIT+=1
+if !WAIT! LSS 15 goto wait_gw
+echo [ERREUR] Passerelle 8765 indisponible. Python installe ?
+python --version
+pause
+exit /b 1
+:gw_ok
+echo        Passerelle OK.
 
-REM Runtime initial (LAN) avant tunnel
+REM --- Runtime LAN (telephone) ---
 python -c "from pathlib import Path; import json,socket,time;\
 s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM);\
 s.connect(('8.8.8.8',80)); ip=s.getsockname()[0]; s.close();\
-Path(r'%ROOT%vendia_runtime.json').write_text(json.dumps({'updatedAt':time.strftime('%Y-%m-%dT%H:%M:%S'),'lanUrl':'http://%%s:8765'%%ip,'lanIp':ip,'gatewayPort':8765,'ollamaPort':11435,'publicUrl':None,'sameOriginV1':True,'tunnel':'pending'},indent=2),encoding='utf-8')" 2>NUL
+Path(r'%ROOT%vendia_runtime.json').write_text(json.dumps({'updatedAt':time.strftime('%%Y-%%m-%%dT%%H:%%M:%%S'),'lanUrl':'http://%%s:8765'%%ip,'lanIp':ip,'gatewayPort':8765,'ollamaPort':11435,'publicUrl':None,'sameOriginV1':True,'v1':'http://%%s:8765/v1'%%ip},indent=2),encoding='utf-8')" 2>NUL
 
-REM --- Tunnel en arriere-plan (4G/5G) ---
-echo [VendIA] Tunnel distant auto ^(4G/5G^) ...
+REM --- Tunnel optionnel 4G (arriere-plan, non bloquant) ---
+echo [3/3] Tunnel 4G/5G en arriere-plan (optionnel) ...
 start "VendIA-Tunnel" /MIN cmd /c "cd /d "%ROOT%" && python vendia_tunnel.py"
 
 echo.
 echo ============================================================
-echo   VENDIA pret — l'app s'adapte Wi-Fi / 4G toute seule
+echo   PRET — le modele reste sur CET ordinateur
 echo ============================================================
 echo.
-echo   1) Ouvre l'app ^(PC ou telephone^) :
-echo        http://!LAN_IP!:8765/
-echo        http://127.0.0.1:8765/
+echo   PC        :  http://127.0.0.1:!WEB_PORT!/
+echo   Telephone :  http://!LAN_IP!:!WEB_PORT!/
+echo                ^(meme Wi-Fi que le PC^)
 echo.
-echo   2) Sur le telephone : une fois en Wi-Fi maison, ouvre le lien
-echo      ci-dessus. L'app memorise le tunnel pour la 4G/5G.
+echo   Sante IA  :  http://127.0.0.1:!WEB_PORT!/vendia/health
 echo.
-echo   3) Reglages -^> Ollama local -^> Detecter -^> Enregistrer
-echo      ^(ou laisse l'auto-config au demarrage^)
-echo.
-echo   URL 4G : regarde la fenetre "VendIA-Tunnel" ou vendia_runtime.json
-echo   DataChef : non touche.
+echo   Laisse les fenetres Ollama / Gateway ouvertes pendant l'usage.
+echo   DataChef (11434) n'est pas touche.
 echo ============================================================
+echo.
+
+REM Affiche health
+curl.exe -s http://127.0.0.1:!WEB_PORT!/vendia/health
+echo.
 echo.
 
 start "" "http://127.0.0.1:!WEB_PORT!/"
-timeout /t 6 /nobreak >NUL
-
-REM Affiche l'URL publique si deja la
-if exist "%ROOT%vendia_runtime.json" (
-  echo --- vendia_runtime.json ---
-  type "%ROOT%vendia_runtime.json"
-  echo.
-)
-
-echo Laisse Ollama / Gateway / Tunnel en arriere-plan pendant l'usage.
-timeout /t 5 /nobreak >NUL
+timeout /t 4 /nobreak >NUL
 endlocal

@@ -92,27 +92,27 @@ Accès dans l’app : carte **Robot prix** sur l’accueil.
 | **xAI / SpaceXAI** | Payant (crédits) | Oui | [console.x.ai](https://console.x.ai) |
 | **Personnalisé** | Selon l’hébergeur | Si vision | Autre base URL OpenAI-compatible |
 
-### IA locale portable (recommandé · **activée par défaut**)
+### IA sur ton PC (recommandé · **activée par défaut**)
 
-Dans l’app, le fournisseur par défaut est **Ollama local VendIA** (`moondream`).
+Le modèle **moondream** tourne **uniquement sur ton ordinateur**.  
+L’app (PC ou téléphone) parle à une **passerelle** (`:8765`) qui relaie vers Ollama (`:11435`).
 
-> **Pourquoi pas dans le repo GitHub ?**  
-> Le pack `ollama/` fait **~3,5 Go** (fichiers > 100 Mo). GitHub refuse ces binaires.  
-> Sur le PC : le dossier `ollama/` reste local / sur SSD. Sur un clone : lance une fois  
-> **`telecharger-ia-portable.bat`** (télécharge Ollama + pull `moondream`).
+Guide détaillé : **[`HOST-IA.md`](HOST-IA.md)**
 
-1. Si besoin : **`telecharger-ia-portable.bat`** (1ʳᵉ install)
-2. Double-clique **`Lancer VendIA.bat`**
-3. Ouvre l’app — l’IA est déjà sur **Ollama** (point vert si le PC répond)
-4. Prends une photo → analyse
+```
+Photo (tel) → http://IP-PC:8765 → Ollama sur le PC (moondream)
+```
 
-**Téléphone + IA du PC (auto)**
+> **GitHub ne contient pas** le dossier `ollama/` (~3,5 Go).  
+> Il reste sur le disque ; regénérable via `telecharger-ia-portable.bat`.
 
-1. PC : **`Lancer VendIA.bat`** (Wi‑Fi + tunnel 4G démarrés ensemble).
-2. Tel : ouvre `http://IP-PC:8765/` (idéalement une 1ʳᵉ fois en Wi‑Fi).
-3. L’app **détecte Wi‑Fi vs 4G/5G** et choisit LAN ou tunnel toute seule.
+1. 1ʳᵉ fois : **`telecharger-ia-portable.bat`**
+2. Chaque usage : **`Lancer VendIA.bat`**
+3. PC : http://127.0.0.1:8765/ · Téléphone (même Wi‑Fi) : http://**IP**:8765/
+4. Santé : http://127.0.0.1:8765/vendia/health → `ok: true`
+5. Photo → analyse (fournisseur **Ollama** déjà sélectionné)
 
-Plus besoin de choisir un second lanceur.
+**Téléphone** : même Wi‑Fi que le PC ; l’app mémorise aussi le tunnel 4G si disponible.
 
 | Fichier | Rôle |
 |---------|------|

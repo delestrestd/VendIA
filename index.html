@@ -3183,11 +3183,166 @@ Prix : réaliste seconde main FR/EU.`;
       return parseListingJSON(text);
     }
 
-    // ----- OpenAI-compatible (Ollama VendIA, xAI, OpenRouter, custom) -----
+    /** Redimensionne une dataURL pour Ollama (vision stable, moins de RAM). */
+    function resizeDataUrlForOllama(dataUrl, maxSide = 768, quality = 0.7) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxSide || height > maxSide) {
+            if (width > height) {
+              height = Math.round(height * maxSide / width);
+              width = maxSide;
+            } else {
+              width = Math.round(width * maxSide / height);
+              height = maxSide;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => resolve(dataUrl);
+        img.src = dataUrl;
+      });
+    }
+
+    function ollamaApiRoot(baseUrl) {
+      // http://host:8765/v1  →  http://host:8765
+      // http://127.0.0.1:11435/v1 → http://127.0.0.1:11435
+      let b = (baseUrl || 'http://127.0.0.1:11435/v1').replace(/\/$/, '');
+      if (b.endsWith('/v1')) b = b.slice(0, -3);
+      return b.replace(/\/$/, '');
+    }
+
+    /**
+     * Analyse via le modèle sur le PC (Ollama).
+     * Chemins essayés :
+     *  1) /api/chat native (images base64) — le plus fiable pour moondream
+     *  2) /v1/chat/completions OpenAI (image_url)
+     *  3) /api/generate
+     */
+    async function analyzeOllamaLocal(images, cfg, signal, slotMeta = []) {
+      const model = cfg.model || 'moondream';
+      const root = ollamaApiRoot(cfg.baseUrl || 'http://127.0.0.1:11435/v1');
+      const prompt = buildAnalysisPrompt(slotMeta) +
+        '\n\nRéponds UNIQUEMENT avec un objet JSON valide (pas de markdown).';
+
+      // 1–2 photos max, redimensionnées (stabilité vision / RAM)
+      const prepared = [];
+      for (const src of images.slice(0, 2)) {
+        prepared.push(await resizeDataUrlForOllama(src, 768, 0.72));
+      }
+      const b64s = prepared.map(u => {
+        const m = String(u).match(/^data:image\/[a-zA-Z0-9.+-]+;base64,(.+)$/);
+        return m ? m[1] : u;
+      });
+
+      const errors = [];
+
+      // --- 1) Native /api/chat ---
+      try {
+        const res = await fetch(`${root}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal,
+          body: JSON.stringify({
+            model,
+            stream: false,
+            messages: [{
+              role: 'user',
+              content: prompt,
+              images: b64s
+            }]
+          })
+        });
+        if (res.ok) {
+          const j = await res.json();
+          const text = j?.message?.content || j?.response || '';
+          if (text && String(text).trim()) return parseListingJSON(text);
+          errors.push('api/chat: réponse vide');
+        } else {
+          errors.push(`api/chat: HTTP ${res.status}`);
+        }
+      } catch (e) {
+        if (e?.name === 'AbortError') throw e;
+        errors.push('api/chat: ' + (e.message || e));
+      }
+
+      // --- 2) OpenAI-compatible /v1/chat/completions ---
+      try {
+        const content = [{ type: 'text', text: prompt }];
+        for (const u of prepared) {
+          content.push({ type: 'image_url', image_url: { url: u } });
+        }
+        const res = await fetch(`${root}/v1/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ollama'
+          },
+          signal,
+          body: JSON.stringify({
+            model,
+            temperature: 0.3,
+            messages: [
+              { role: 'system', content: 'Tu réponds uniquement en JSON valide pour une annonce de revente.' },
+              { role: 'user', content }
+            ]
+          })
+        });
+        if (res.ok) {
+          const j = await res.json();
+          const text = j?.choices?.[0]?.message?.content || '';
+          if (text && String(text).trim()) return parseListingJSON(text);
+          errors.push('v1: réponse vide');
+        } else {
+          errors.push(`v1: HTTP ${res.status}`);
+        }
+      } catch (e) {
+        if (e?.name === 'AbortError') throw e;
+        errors.push('v1: ' + (e.message || e));
+      }
+
+      // --- 3) /api/generate ---
+      try {
+        const res = await fetch(`${root}/api/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal,
+          body: JSON.stringify({
+            model,
+            prompt,
+            images: b64s,
+            stream: false
+          })
+        });
+        if (res.ok) {
+          const j = await res.json();
+          const text = j?.response || '';
+          if (text && String(text).trim()) return parseListingJSON(text);
+          errors.push('generate: réponse vide');
+        } else {
+          errors.push(`generate: HTTP ${res.status}`);
+        }
+      } catch (e) {
+        if (e?.name === 'AbortError') throw e;
+        errors.push('generate: ' + (e.message || e));
+      }
+
+      throw new Error(
+        'IA PC injoignable ou modèle en panne. ' +
+        'Vérifie que Lancer VendIA.bat tourne, puis /vendia/health. ' +
+        '(' + errors.slice(0, 2).join(' · ') + ')'
+      );
+    }
+
+    // ----- OpenAI-compatible (xAI, OpenRouter, custom) -----
     async function analyzeOpenAICompatible(images, cfg, signal, slotMeta = []) {
       const base = cfg.baseUrl || 'https://api.openai.com/v1';
       const model = cfg.model || 'gpt-4o-mini';
-      const isOllama = (cfg.provider === 'ollama') || /11435|:11435|localhost|127\.0\.0\.1/i.test(base);
       const content = [{ type: 'text', text: buildAnalysisPrompt(slotMeta) }];
       for (const img of images.slice(0, 5)) {
         content.push({ type: 'image_url', image_url: { url: img } });
@@ -3196,39 +3351,36 @@ Prix : réaliste seconde main FR/EU.`;
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${cfg.apiKey || 'ollama'}`
       };
-      // OpenRouter optional headers
       if (base.includes('openrouter.ai')) {
         headers['HTTP-Referer'] = location.origin || 'https://vendia.app';
         headers['X-Title'] = 'VendIA';
       }
-      const res = await fetch(`${base}/chat/completions`, {
+      const payload = {
+        model,
+        temperature: 0.4,
+        messages: [
+          { role: 'system', content: 'Tu réponds uniquement en JSON valide pour pré-remplir une annonce de revente.' },
+          { role: 'user', content }
+        ]
+      };
+      // response_format cassé sur certains modèles (ex. Ollama) → réservé cloud
+      if (!/11435|localhost|127\.0\.0\.1|:8765/i.test(base)) {
+        payload.response_format = { type: 'json_object' };
+      }
+
+      const res = await fetch(`${base.replace(/\/$/, '')}/chat/completions`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          model,
-          temperature: 0.4,
-          response_format: { type: 'json_object' },
-          messages: [
-            { role: 'system', content: 'Tu réponds uniquement en JSON valide pour pré-remplir une annonce de revente.' },
-            { role: 'user', content }
-          ]
-        }),
+        body: JSON.stringify(payload),
         signal
       });
       if (!res.ok) {
-        // some models reject response_format — retry without it once
-        if (res.status === 400) {
-          const retry = await fetch(`${base}/chat/completions`, {
+        if (res.status === 400 && payload.response_format) {
+          delete payload.response_format;
+          const retry = await fetch(`${base.replace(/\/$/, '')}/chat/completions`, {
             method: 'POST',
             headers,
-            body: JSON.stringify({
-              model,
-              temperature: 0.4,
-              messages: [
-                { role: 'system', content: 'Tu réponds uniquement en JSON valide pour pré-remplir une annonce de revente.' },
-                { role: 'user', content }
-              ]
-            }),
+            body: JSON.stringify(payload),
             signal
           });
           if (!retry.ok) {
@@ -3298,8 +3450,11 @@ Prix : réaliste seconde main FR/EU.`;
 
         if (provider === 'mock') return analyzeMock(imageDataUrls, signal);
         if (provider === 'gemini') return analyzeGemini(imageDataUrls, cfg, signal, slotMeta);
-        // ollama + openrouter + xai + openai_compatible
-        if (provider === 'ollama' && !cfg.apiKey) cfg.apiKey = 'ollama';
+        // Ollama = modèle hébergé sur le PC (passerelle 8765 ou 11435 direct)
+        if (provider === 'ollama') {
+          cfg.apiKey = cfg.apiKey || 'ollama';
+          return analyzeOllamaLocal(imageDataUrls, cfg, signal, slotMeta);
+        }
         return analyzeOpenAICompatible(imageDataUrls, cfg, signal, slotMeta);
       }
     };
