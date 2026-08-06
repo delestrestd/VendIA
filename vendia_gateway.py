@@ -49,16 +49,52 @@ def ollama_get(path: str, timeout: float = 3.0):
         return resp.status, resp.read(), resp.headers.get("Content-Type", "application/json")
 
 
+# Erreurs réseau "normales" (Chrome ferme la connexion, refresh, etc.)
+_BENIGN_NET = (
+    ConnectionResetError,
+    ConnectionAbortedError,
+    BrokenPipeError,
+    TimeoutError,
+)
+
+
 class Handler(BaseHTTPRequestHandler):
-    protocol_version = "HTTP/1.1"
+    # HTTP/1.0 évite des half-open keep-alive qui plantent en traceback sur Windows
+    protocol_version = "HTTP/1.0"
+    timeout = 120
 
     def log_message(self, fmt, *args):
         sys.stderr.write("[VendIA] %s - %s\n" % (self.address_string(), fmt % args))
+
+    def handle(self):
+        """Ignore les déconnexions client (WinError 10054) — ce n'est PAS une panne serveur."""
+        try:
+            super().handle()
+        except _BENIGN_NET:
+            pass
+        except Exception as e:
+            # Autres erreurs : log court sans stack complète si c'est du réseau
+            if "10054" in str(e) or "10053" in str(e):
+                return
+            raise
+
+    def handle_one_request(self):
+        try:
+            super().handle_one_request()
+        except _BENIGN_NET:
+            pass
+
+    def finish(self):
+        try:
+            super().finish()
+        except _BENIGN_NET:
+            pass
 
     def _cors(self):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        self.send_header("Connection", "close")
 
     def _json(self, code: int, obj):
         data = json.dumps(obj, ensure_ascii=False).encode("utf-8")
@@ -68,7 +104,10 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self._cors()
         self.end_headers()
-        self.wfile.write(data)
+        try:
+            self.wfile.write(data)
+        except _BENIGN_NET:
+            pass
 
     def do_OPTIONS(self):
         self.send_response(204)
@@ -214,7 +253,28 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-cache")
         self._cors()
         self.end_headers()
-        self.wfile.write(data)
+        try:
+            self.wfile.write(data)
+        except _BENIGN_NET:
+            pass
+
+
+class QuietThreadingHTTPServer(ThreadingHTTPServer):
+    """Ne pollue pas la console avec ConnectionResetError (navigateur qui coupe)."""
+
+    daemon_threads = True
+    request_queue_size = 32
+
+    def handle_error(self, request, client_address):
+        exc = sys.exc_info()[1]
+        if isinstance(exc, _BENIGN_NET):
+            return
+        if exc and ("10054" in str(exc) or "10053" in str(exc) or "Broken pipe" in str(exc)):
+            return
+        # Vraie erreur : message court
+        sys.stderr.write(
+            "[VendIA] erreur requête %s : %s\n" % (client_address, exc.__class__.__name__ if exc else "?")
+        )
 
 
 def main():
@@ -226,13 +286,15 @@ def main():
     args = ap.parse_args()
     PORT = args.port
     OLLAMA = args.ollama.replace("http://", "").replace("https://", "").rstrip("/")
-    httpd = ThreadingHTTPServer((args.bind, args.port), Handler)
+    httpd = QuietThreadingHTTPServer((args.bind, args.port), Handler)
     ip = lan_ip()
     print(f"[VendIA] gateway http://{args.bind}:{args.port}/  →  Ollama {OLLAMA}", flush=True)
     print(f"[VendIA] PC     : http://127.0.0.1:{args.port}/", flush=True)
     print(f"[VendIA] Tel Wi‑Fi : http://{ip}:{args.port}/", flush=True)
     print(f"[VendIA] Santé : http://127.0.0.1:{args.port}/vendia/health", flush=True)
     print("[VendIA] Le modèle reste sur cet ordinateur. Ne ferme pas cette fenêtre.", flush=True)
+    print("[VendIA] Si tu vois « ConnectionReset » : ce n'est pas grave (navigateur).", flush=True)
+    print("[VendIA] App OK si tu as des lignes GET … 200", flush=True)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
