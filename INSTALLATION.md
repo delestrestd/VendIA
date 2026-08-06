@@ -47,17 +47,27 @@ Si le navigateur est blanc / « ne répond pas » :
 
 ---
 
-### Étape 3 — Téléphone (photos)
+### Étape 3 — Téléphone (photos) — **souvent bloqué par Windows**
 
-1. PC et téléphone sur le **même Wi‑Fi**.
-2. Sur le téléphone, ouvre l’URL affichée par `2-LANCER.bat`, du type :  
-   **http://192.168.x.x:8765/**  
-   (l’IP exacte s’affiche dans la fenêtre du lanceur)
-3. Autorise la caméra → prends une photo → **Lancer l’analyse IA**.
+1. PC et téléphone sur le **même Wi‑Fi** (pas le partage de connexion du téléphone).
+2. **Une fois** sur le PC : double-clic **`3-OUVRIR-RESEAU.bat`**  
+   → accepte l’UAC administrateur  
+   → ouvre le port **8765** + passe le Wi‑Fi en **Privé**
+3. Relance **`2-LANCER.bat`** (serveur allumé).
+4. Sur le téléphone ouvre l’URL du lanceur, ex. :  
+   **http://192.168.10.81:8765/**
+5. Autorise la caméra → photo → analyse IA.
 
-Si le téléphone n’affiche rien :
-- Wi‑Fi invité / isolation d’appareils → désactive ou utilise le Wi‑Fi principal  
-- Pare-feu Windows → autorise **Python** ou le port **8765**
+| Test | Où | Résultat attendu |
+|------|-----|------------------|
+| http://127.0.0.1:8765/ | **PC** | App VendIA |
+| http://192.168.x.x:8765/ | **PC** d’abord | Si ça échoue sur le PC, l’IP est fausse ou serveur off |
+| Même URL | **Téléphone** | Si OK sur PC mais pas sur tel → pare-feu / autre Wi‑Fi |
+
+Si le téléphone n’affiche rien après `3-OUVRIR-RESEAU.bat` :
+- Wi‑Fi **invité** / isolation clients (box Free/Orange…) → utilise le Wi‑Fi principal  
+- VPN sur le téléphone ou le PC → coupe le VPN  
+- Vérifie que `2-LANCER.bat` tourne encore (fenêtres Ollama + Gateway)
 
 ---
 

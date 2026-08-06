@@ -125,6 +125,16 @@ s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM);\
 s.connect(('8.8.8.8',80)); ip=s.getsockname()[0]; s.close();\
 Path(r'%ROOT%vendia_runtime.json').write_text(json.dumps({'updatedAt':time.strftime('%%Y-%%m-%%dT%%H:%%M:%%S'),'lanUrl':'http://%%s:8765'%%ip,'lanIp':ip,'gatewayPort':8765,'ollamaPort':11435,'publicUrl':None,'sameOriginV1':True},indent=2),encoding='utf-8')" 2>NUL
 
+REM --- Rappel pare-feu ---
+netsh advfirewall firewall show rule name="VendIA Gateway 8765" >NUL 2>&1
+if errorlevel 1 (
+  echo.
+  echo [ATTENTION] Pare-feu : regle VendIA absente.
+  echo             Si le TELEPHONE ne charge pas la page, lance une fois :
+  echo               3-OUVRIR-RESEAU.bat   ^(clic droit -^> Admin^)
+  echo.
+)
+
 echo ============================================================
 echo   SERVEUR PRET
 echo ============================================================
@@ -132,19 +142,21 @@ echo.
 echo   SUR LE PC (navigateur) :
 echo      http://127.0.0.1:8765/
 echo.
-echo   SUR LE TELEPHONE (meme Wi-Fi Wi-Fi) :
+echo   SUR LE TELEPHONE (meme Wi-Fi que le PC) :
 echo      http://!LAN_IP!:8765/
 echo.
-echo   CONTROLE :
+echo   Si le telephone ne charge RIEN :
+echo      1) PC et tel sur le MEME Wi-Fi (pas le partage 4G du tel)
+echo      2) Lance  3-OUVRIR-RESEAU.bat  en Administrateur
+echo      3) Relance 2-LANCER.bat puis reessaie l'URL telephone
+echo.
+echo   CONTROLE PC :
 echo      http://127.0.0.1:8765/vendia/health
 echo.
-echo   Tu dois voir DEUX fenetres :
-echo      - VendIA-Ollama
-echo      - VendIA-Gateway
-echo   Si tu les fermes, le serveur s'arrete.
+echo   Garde ouvertes : VendIA-Ollama + VendIA-Gateway
 echo ============================================================
 echo.
-echo Ouverture du navigateur...
+echo Ouverture du navigateur (PC)...
 start "" "http://127.0.0.1:!WEB_PORT!/"
 
 echo.
