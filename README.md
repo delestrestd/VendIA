@@ -92,13 +92,19 @@ Accès dans l’app : carte **Robot prix** sur l’accueil.
 | **xAI / SpaceXAI** | Payant (crédits) | Oui | [console.x.ai](https://console.x.ai) |
 | **Personnalisé** | Selon l’hébergeur | Si vision | Autre base URL OpenAI-compatible |
 
-### IA locale portable (recommandé pour démarrer)
+### IA locale portable (recommandé · **activée par défaut**)
 
-VendIA embarque son propre **Ollama + modèle vision** dans le dossier (prêt pour un **SSD**).
+Dans l’app, le fournisseur par défaut est **Ollama local VendIA** (`moondream`).
 
-1. Double-clique **`Lancer VendIA.bat`**
-2. **⚙** → **Ollama local VendIA** → modèle **`moondream`** → **Détecter** → **Enregistrer**
-3. Prends une photo → analyse IA
+> **Pourquoi pas dans le repo GitHub ?**  
+> Le pack `ollama/` fait **~3,5 Go** (fichiers > 100 Mo). GitHub refuse ces binaires.  
+> Sur le PC : le dossier `ollama/` reste local / sur SSD. Sur un clone : lance une fois  
+> **`telecharger-ia-portable.bat`** (télécharge Ollama + pull `moondream`).
+
+1. Si besoin : **`telecharger-ia-portable.bat`** (1ʳᵉ install)
+2. Double-clique **`Lancer VendIA.bat`**
+3. Ouvre l’app — l’IA est déjà sur **Ollama** (point vert si le PC répond)
+4. Prends une photo → analyse
 
 **Téléphone + IA du PC (auto)**
 

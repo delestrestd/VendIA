@@ -1093,8 +1093,8 @@
           <label for="cfg-provider" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Fournisseur</label>
           <select id="cfg-provider" onchange="onProviderChange()"
                   class="w-full px-3 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none focus:ring-2 focus:ring-primary/30">
-            <option value="mock">Simulation (gratuit, hors ligne)</option>
-            <option value="ollama">Ollama local VendIA (portable)</option>
+            <option value="ollama">Ollama local VendIA (défaut · gratuit)</option>
+            <option value="mock">Simulation (sans IA réelle)</option>
             <option value="gemini">Google Gemini (gratuit / quota)</option>
             <option value="openrouter">OpenRouter (modèles gratuits + payants)</option>
             <option value="xai">xAI / SpaceXAI (payant)</option>
@@ -2502,7 +2502,13 @@
     const VISION_MODEL_HINTS = /llava|bakllava|moondream|minicpm|vision|vl[:.-]|qwen2\.5-?vl|qwen2-vl|gemma3|pixtral|llama3\.2-vision/i;
 
     const AI_CONFIG_KEY = 'vendia_ai_config';
-    const DEFAULT_AI_CONFIG = { provider: 'mock', apiKey: '', model: '', baseUrl: '' };
+    /** Ollama local VendIA = fournisseur par défaut (gratuit, vision). Simulation / cloud en secours. */
+    const DEFAULT_AI_CONFIG = {
+      provider: 'ollama',
+      apiKey: 'ollama',
+      model: 'moondream',
+      baseUrl: 'http://127.0.0.1:11435/v1'
+    };
 
     function loadAIConfig() {
       try {
@@ -2725,13 +2731,8 @@
 
     function getEffectiveAIConfig() {
       const cfg = loadAIConfig();
-      let provider = cfg.provider in AI_PRESETS ? cfg.provider : 'mock';
-      // Auto-switch vers ollama si on a un endpoint joignable et provider encore mock
-      if (provider === 'mock' && netState.baseUrl && netState.label && !/injoignable|lance Lancer/i.test(netState.label)) {
-        // ne force pas silencieusement mock→ollama sauf si user n'a jamais configuré
-        // (bootstrap le fera explicitement)
-      }
-      const preset = AI_PRESETS[provider] || AI_PRESETS.mock;
+      let provider = cfg.provider in AI_PRESETS ? cfg.provider : 'ollama';
+      const preset = AI_PRESETS[provider] || AI_PRESETS.ollama;
       let apiKey = (cfg.apiKey || '').trim();
       if (provider === 'ollama' && !apiKey) apiKey = 'ollama';
       let baseUrl = (cfg.baseUrl || preset.baseUrl || '').replace(/\/$/, '');
@@ -2761,8 +2762,13 @@
           (cfg.provider === 'mock' ? 'bg-gray-300 dark:bg-gray-600' : cfg.free === false ? 'bg-accent' : ok ? 'bg-emerald-500' : 'bg-amber-400');
       }
       if (hint) {
-        if (cfg.provider === 'mock') {
-          hint.textContent = 'Mode simulation (l’app bascule sur Ollama si le PC est joignable)';
+        if (cfg.provider === 'ollama') {
+          const offline = !netState.baseUrl || /injoignable|lance Lancer/i.test(netState.label || '');
+          hint.textContent = offline
+            ? 'Ollama actif — lance Lancer VendIA.bat sur le PC pour analyser'
+            : `Ollama · ${cfg.model || 'moondream'} · ${netState.label || 'connecté'}`;
+        } else if (cfg.provider === 'mock') {
+          hint.textContent = 'Mode simulation (sans analyse réelle)';
         } else {
           hint.textContent = `${cfg.label}${cfg.model ? ' · ' + cfg.model : ''} · ${netState.label || ''}`;
         }
@@ -2780,14 +2786,31 @@
       }
     }
 
-    /** Au démarrage : détecte le réseau, trouve l’IA, bascule sur Ollama si possible */
+    /** Au démarrage : Ollama est le mode par défaut ; on résout l’URL (LAN / tunnel) si le PC tourne. */
     async function autoBootstrapNetworkAI() {
       try {
+        // Garantit le provider Ollama dès le 1er lancement (sauf si l’utilisateur a choisi cloud/mock)
+        const cfg0 = loadAIConfig();
+        const lockedCloud = ['gemini', 'openrouter', 'xai', 'openai_compatible'].includes(cfg0.provider);
+        if (!lockedCloud && cfg0.provider !== 'mock') {
+          // mock explicite = l’utilisateur a choisi simulation ; sinon force ollama
+          if (!cfg0.provider || cfg0.provider === 'ollama' || !(cfg0.provider in AI_PRESETS)) {
+            saveAIConfig({
+              provider: 'ollama',
+              apiKey: 'ollama',
+              model: cfg0.model || 'moondream',
+              baseUrl: cfg0.baseUrl || DEFAULT_AI_CONFIG.baseUrl
+            });
+          }
+        } else if (!cfg0.provider) {
+          saveAIConfig({ ...DEFAULT_AI_CONFIG });
+        }
+
         await resolveNetworkAndAI();
         const reachable = netState.baseUrl && !/injoignable|lance Lancer/i.test(netState.label || '');
         if (reachable) {
           const cfg = loadAIConfig();
-          // Active Ollama auto si mock ou déjà ollama
+          // Active / met à jour Ollama si mock (auto) ou déjà ollama
           if (!cfg.provider || cfg.provider === 'mock' || cfg.provider === 'ollama') {
             saveAIConfig({
               provider: 'ollama',

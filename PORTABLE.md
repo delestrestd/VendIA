@@ -24,8 +24,13 @@ Les deux peuvent tourner **en même temps** sans se marcher dessus.
 
 ## Usage PC
 
-1. **`Lancer VendIA.bat`**
-2. **⚙** → **Ollama local VendIA** → **`moondream`** → **Détecter** → **Enregistrer**
+Ollama est le **fournisseur par défaut** dans l’app (plus besoin de le choisir dans ⚙).
+
+1. Première fois / clone GitHub : **`telecharger-ia-portable.bat`** (installe `ollama/` + `moondream` — ~2–4 Go, **hors git**)
+2. Ensuite : **`Lancer VendIA.bat`**
+3. Photo → analyse (point vert = moteur joignable)
+
+> Le dossier `ollama/` n’est **pas** sur GitHub (trop lourd). Il est listé dans `.gitignore` et se regénère via le script.
 
 ## Téléphone + IA du PC (auto Wi‑Fi / 4G)
 
