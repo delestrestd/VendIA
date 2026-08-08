@@ -38,7 +38,8 @@
       --safe-t: env(safe-area-inset-top, 0px);
       --safe-b: env(safe-area-inset-bottom, 0px);
       --nav-h: 4.25rem;
-      --ad-h: 2.5rem; /* bandeau pub compact (~40px) */
+      --ad-h: 3.25rem; /* bandeau pub mobile ~52px */
+      --app-max: 32rem; /* = max-w-lg, cadre unique PC + mobile */
     }
 
     * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
@@ -117,93 +118,143 @@
     }
     #toast.show { transform: translateX(-50%) translateY(0); }
 
-    /* Bandeau pub : 1 annonce / 10 s, cliquable, boucle */
+    /* Bandeau pub : même largeur que l’app (pas de débordement PC) */
     .ad-banner {
       position: fixed;
-      left: 0;
-      right: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: var(--app-max);
       bottom: calc(var(--nav-h) + var(--safe-b));
       z-index: 39;
       height: var(--ad-h);
-      background: linear-gradient(90deg, #0f766e 0%, #0d9488 40%, #f97316 100%);
-      border-top: 1px solid rgb(255 255 255 / 0.12);
-      overflow: hidden;
+      box-sizing: border-box;
+      padding: 0 0.5rem;
+      pointer-events: none; /* le fond ne déborde pas les clics hors cadre */
     }
-    .dark .ad-banner {
-      background: linear-gradient(90deg, #0d5c56 0%, #115e59 45%, #9a3412 100%);
+    .ad-banner-shell {
+      pointer-events: auto;
+      height: 100%;
+      width: 100%;
+      border-radius: 0.85rem 0.85rem 0 0;
+      overflow: hidden;
+      position: relative;
+      background: linear-gradient(105deg, #0f766e 0%, #0d9488 42%, #ea580c 100%);
+      border: 1px solid rgb(255 255 255 / 0.18);
+      border-bottom: none;
+      box-shadow: 0 -4px 20px -6px rgb(15 23 42 / 0.25);
+    }
+    .dark .ad-banner-shell {
+      background: linear-gradient(105deg, #0d5c56 0%, #115e59 45%, #9a3412 100%);
     }
     .ad-banner-inner {
       display: flex;
       align-items: center;
       height: 100%;
-      max-width: 32rem;
-      margin: 0 auto;
+      width: 100%;
+      max-width: 100%;
+      margin: 0;
       position: relative;
+      min-width: 0;
+      padding: 0 0.15rem 0 0;
     }
     .ad-label {
       flex-shrink: 0;
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 0.06em;
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: rgb(255 255 255 / 0.75);
-      padding: 0 0.5rem 0 0.65rem;
+      color: rgb(255 255 255 / 0.85);
+      padding: 0 0.4rem 0 0.5rem;
       border-right: 1px solid rgb(255 255 255 / 0.2);
       line-height: 1;
-      height: 1.25rem;
+      height: 1.1rem;
       display: flex;
       align-items: center;
       z-index: 2;
     }
     .ad-slot {
-      flex: 1;
+      flex: 1 1 auto;
       min-width: 0;
+      max-width: 100%;
       height: 100%;
       position: relative;
+      overflow: hidden;
     }
     .ad-link {
       display: flex;
       align-items: center;
       gap: 0.45rem;
       height: 100%;
-      padding: 0 0.65rem;
+      width: 100%;
+      max-width: 100%;
+      padding: 0 0.45rem 0 0.5rem;
       color: #fff;
       text-decoration: none;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
-      letter-spacing: 0.02em;
-      white-space: nowrap;
+      letter-spacing: 0.01em;
       overflow: hidden;
       transition: background 0.15s ease, opacity 0.35s ease;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
     }
     .ad-link:active { background: rgb(255 255 255 / 0.12); }
-    .ad-link.is-enter { animation: ad-fade-in 0.4s ease both; }
+    .ad-link.is-enter { animation: ad-fade-in 0.35s ease both; }
     @keyframes ad-fade-in {
-      from { opacity: 0; transform: translateY(4px); }
+      from { opacity: 0; transform: translateY(3px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    .ad-link-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 999px;
+    .ad-logo {
+      width: 1.65rem;
+      height: 1.65rem;
+      border-radius: 0.4rem;
       flex-shrink: 0;
-      box-shadow: 0 0 0 2px rgb(255 255 255 / 0.25);
+      object-fit: contain;
+      background: #fff;
+      padding: 2px;
     }
-    .ad-link-text { overflow: hidden; text-overflow: ellipsis; }
+    .ad-link-copy {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 1px;
+      text-align: left;
+    }
+    .ad-link-name {
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ad-link-tag {
+      font-size: 9px;
+      font-weight: 500;
+      opacity: 0.88;
+      line-height: 1.15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     .ad-link-cta {
-      margin-left: auto;
+      margin-left: 0.25rem;
       flex-shrink: 0;
       font-size: 9px;
-      font-weight: 600;
+      font-weight: 700;
       letter-spacing: 0.04em;
       text-transform: uppercase;
-      color: rgb(255 255 255 / 0.8);
-      padding: 0.15rem 0.45rem;
+      color: #fff;
+      padding: 0.28rem 0.5rem;
       border-radius: 999px;
-      background: rgb(255 255 255 / 0.18);
-      border: 1px solid rgb(255 255 255 / 0.22);
+      background: rgb(255 255 255 / 0.2);
+      border: 1px solid rgb(255 255 255 / 0.28);
+      white-space: nowrap;
     }
     .ad-progress {
       position: absolute;
@@ -211,7 +262,7 @@
       bottom: 0;
       height: 2px;
       width: 0%;
-      background: rgb(255 255 255 / 0.85);
+      background: rgb(255 255 255 / 0.9);
       pointer-events: none;
       z-index: 3;
     }
@@ -223,9 +274,33 @@
       from { width: 0%; }
       to { width: 100%; }
     }
+    /* Slot AdSense (vrai réseau) */
+    .ad-adsense-wrap {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0f172a;
+      overflow: hidden;
+    }
+    .ad-adsense-wrap ins {
+      display: block !important;
+      width: 100% !important;
+      max-height: 50px !important;
+    }
     @media (prefers-reduced-motion: reduce) {
       .ad-link.is-enter { animation: none; }
       .ad-progress.run { animation: none; width: 100%; }
+    }
+    /* Header + nav = même cadre que l’app (évite bandeau “full screen” sur PC) */
+    #app-nav,
+    #app-header {
+      left: 50% !important;
+      right: auto !important;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: var(--app-max);
     }
 
     /* FAB camera */
@@ -905,12 +980,14 @@
     </section>
   </main>
 
-  <!-- ========== BANDEAU PUB : 1 marque / 10 s, cliquable, boucle ========== -->
-  <aside id="ad-banner" class="ad-banner" aria-label="Publicité partenaires" role="complementary">
-    <div class="ad-progress" id="ad-progress" aria-hidden="true"></div>
-    <div class="ad-banner-inner">
-      <span class="ad-label" title="Publicité">Pub</span>
-      <div class="ad-slot" id="ad-slot"></div>
+  <!-- ========== BANDEAU PUB (cadre app · partenaires réels / AdSense) ========== -->
+  <aside id="ad-banner" class="ad-banner" aria-label="Publicité" role="complementary">
+    <div class="ad-banner-shell">
+      <div class="ad-progress" id="ad-progress" aria-hidden="true"></div>
+      <div class="ad-banner-inner">
+        <span class="ad-label" title="Contenu sponsorisé">Pub</span>
+        <div class="ad-slot" id="ad-slot"></div>
+      </div>
     </div>
   </aside>
 
@@ -3857,45 +3934,121 @@ Prix : réaliste seconde main FR/EU.`;
       }
     });
 
-    // ========== BANDEAU PUB (1 / 10 s, cliquable, boucle) ==========
-    const AD_DURATION_MS = 10_000;
-    const AD_SPONSORS = [
-      { name: 'Nike', tagline: 'Just Do It · seconde main welcome', url: 'https://www.nike.com', color: '#111111' },
-      { name: 'Adidas', tagline: 'Impossible is nothing', url: 'https://www.adidas.fr', color: '#000000' },
-      { name: 'Zara', tagline: 'Mode accessible, style durable', url: 'https://www.zara.com', color: '#1a1a1a' },
-      { name: "Levi's", tagline: 'Original denim depuis 1853', url: 'https://www.levi.com', color: '#c41230' },
-      { name: 'H&M', tagline: 'Conscious · recycle & revends', url: 'https://www.hm.com', color: '#e50010' },
-      { name: 'The North Face', tagline: 'Never Stop Exploring', url: 'https://www.thenorthface.fr', color: '#dc143c' },
-      { name: 'Seconde Vie', tagline: 'Partenaire VendIA — donnez une 2e vie', url: '#', color: '#14b8a6' },
-      { name: 'EcoMode', tagline: 'Mode circulaire · moins de neuf', url: '#', color: '#f97316' }
+    // ========== BANDEAU PUB ==========
+    // - Mode "partners" : vraies marques / marketplaces (liens réels)
+    // - Mode "adsense" : si tu renseignes un ID AdSense (localStorage ou constante)
+    //
+    // Pour activer Google AdSense :
+    //   localStorage.setItem('vendia_adsense_client', 'ca-pub-XXXXXXXX');
+    //   localStorage.setItem('vendia_adsense_slot', 'YYYYYYYYYY');
+    //   puis recharger. En localhost AdSense peut ne rien afficher (normal).
+    const AD_DURATION_MS = 12_000;
+    const ADSENSE_CLIENT = (localStorage.getItem('vendia_adsense_client') || '').trim();
+    const ADSENSE_SLOT = (localStorage.getItem('vendia_adsense_slot') || '').trim();
+
+    /** Inventaire partenaires réels (URLs commerciales FR) — seconde main / shopping */
+    const AD_PARTNERS = [
+      {
+        name: 'Leboncoin',
+        tagline: 'Achetez & vendez près de chez vous',
+        url: 'https://www.leboncoin.fr/',
+        logo: 'https://www.google.com/s2/favicons?domain=leboncoin.fr&sz=64',
+        color: '#FF6E14'
+      },
+      {
+        name: 'Vinted',
+        tagline: 'Mode de seconde main',
+        url: 'https://www.vinted.fr/',
+        logo: 'https://www.google.com/s2/favicons?domain=vinted.fr&sz=64',
+        color: '#09B1BA'
+      },
+      {
+        name: 'Back Market',
+        tagline: 'High-tech reconditionné garanti',
+        url: 'https://www.backmarket.fr/',
+        logo: 'https://www.google.com/s2/favicons?domain=backmarket.fr&sz=64',
+        color: '#00C2A8'
+      },
+      {
+        name: 'Decathlon',
+        tagline: 'Occasion sport · Seconde vie',
+        url: 'https://www.decathlon.fr/browse/c0-tous-les-sports/seconde-vie/_/N-1f3b0w5',
+        logo: 'https://www.google.com/s2/favicons?domain=decathlon.fr&sz=64',
+        color: '#0082C3'
+      },
+      {
+        name: 'Veepee',
+        tagline: 'Ventes privées & bonnes affaires',
+        url: 'https://www.veepee.fr/',
+        logo: 'https://www.google.com/s2/favicons?domain=veepee.fr&sz=64',
+        color: '#E31C79'
+      },
+      {
+        name: 'Amazon',
+        tagline: 'Retours & bonnes affaires',
+        url: 'https://www.amazon.fr/gp/browse.html?node=1571265031',
+        logo: 'https://www.google.com/s2/favicons?domain=amazon.fr&sz=64',
+        color: '#FF9900'
+      },
+      {
+        name: 'eBay',
+        tagline: 'Enchères & articles d’occasion',
+        url: 'https://www.ebay.fr/',
+        logo: 'https://www.google.com/s2/favicons?domain=ebay.fr&sz=64',
+        color: '#E53238'
+      },
+      {
+        name: 'La Redoute',
+        tagline: 'Mode & maison',
+        url: 'https://www.laredoute.fr/',
+        logo: 'https://www.google.com/s2/favicons?domain=laredoute.fr&sz=64',
+        color: '#E30613'
+      },
+      {
+        name: 'Rakuten',
+        tagline: 'Cashback & marketplace',
+        url: 'https://fr.shopping.rakuten.com/',
+        logo: 'https://www.google.com/s2/favicons?domain=rakuten.fr&sz=64',
+        color: '#BF0000'
+      },
+      {
+        name: 'Fnac',
+        tagline: 'Culture & tech',
+        url: 'https://www.fnac.com/',
+        logo: 'https://www.google.com/s2/favicons?domain=fnac.com&sz=64',
+        color: '#E5A000'
+      }
     ];
 
     let adIndex = 0;
     let adTimer = null;
+    let adMode = 'partners'; // partners | adsense
 
-    function showAdAt(index) {
+    function showPartnerAd(index) {
       const slot = document.getElementById('ad-slot');
       const progress = document.getElementById('ad-progress');
-      if (!slot || !AD_SPONSORS.length) return;
+      if (!slot || !AD_PARTNERS.length) return;
 
-      adIndex = ((index % AD_SPONSORS.length) + AD_SPONSORS.length) % AD_SPONSORS.length;
-      const s = AD_SPONSORS[adIndex];
-      const href = s.url && s.url !== '#' ? s.url : 'javascript:void(0)';
-      const external = s.url && s.url !== '#';
+      adIndex = ((index % AD_PARTNERS.length) + AD_PARTNERS.length) % AD_PARTNERS.length;
+      const s = AD_PARTNERS[adIndex];
 
       slot.innerHTML = `
-        <a class="ad-link is-enter" href="${escapeHtml(href)}"
-           ${external ? 'target="_blank" rel="noopener noreferrer sponsored"' : 'role="link"'}
-           title="${escapeHtml(s.name)} — ouvrir"
-           aria-label="Publicité ${escapeHtml(s.name)} : ${escapeHtml(s.tagline || s.name)}">
-          <span class="ad-link-dot" style="background:${escapeHtml(s.color || '#fff')}"></span>
-          <span class="ad-link-text">${escapeHtml(s.name)}${s.tagline ? ' · ' + escapeHtml(s.tagline) : ''}</span>
+        <a class="ad-link is-enter" href="${escapeHtml(s.url)}"
+           target="_blank" rel="noopener noreferrer sponsored"
+           title="Sponsorisé · ${escapeHtml(s.name)}"
+           aria-label="Publicité ${escapeHtml(s.name)} : ${escapeHtml(s.tagline)}">
+          <img class="ad-logo" src="${escapeHtml(s.logo)}" alt="" width="28" height="28"
+               loading="lazy" referrerpolicy="no-referrer"
+               onerror="this.style.background='${escapeHtml(s.color)}';this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'" />
+          <span class="ad-link-copy">
+            <span class="ad-link-name">${escapeHtml(s.name)}</span>
+            <span class="ad-link-tag">${escapeHtml(s.tagline)}</span>
+          </span>
           <span class="ad-link-cta">Voir</span>
         </a>`;
 
       if (progress) {
         progress.classList.remove('run');
-        // reflow pour relancer l’animation barre 10 s
         void progress.offsetWidth;
         progress.style.setProperty('--ad-duration', AD_DURATION_MS + 'ms');
         progress.classList.add('run');
@@ -3903,27 +4056,84 @@ Prix : réaliste seconde main FR/EU.`;
     }
 
     function nextAd() {
-      showAdAt(adIndex + 1);
+      showPartnerAd(adIndex + 1);
     }
 
-    function startAdRotation() {
+    function startPartnerRotation() {
       clearInterval(adTimer);
-      showAdAt(0);
+      showPartnerAd(0);
       adTimer = setInterval(nextAd, AD_DURATION_MS);
-      // pause timer quand l’onglet est caché (économie + pas de saut)
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
           clearInterval(adTimer);
           adTimer = null;
-        } else if (!adTimer) {
-          showAdAt(adIndex);
+        } else if (!adTimer && adMode === 'partners') {
+          showPartnerAd(adIndex);
           adTimer = setInterval(nextAd, AD_DURATION_MS);
         }
       });
     }
 
+    /** Charge un vrai bandeau Google AdSense si ID configuré */
+    function tryLoadAdSense() {
+      if (!ADSENSE_CLIENT || !ADSENSE_CLIENT.startsWith('ca-pub-')) return false;
+      // AdSense refuse souvent localhost / IP LAN — on tente quand même, fallback auto
+      const isLocal = /localhost|127\.0\.0\.1|192\.168\.|10\./i.test(location.hostname || '');
+      if (isLocal && !localStorage.getItem('vendia_adsense_force')) {
+        console.info('[VendIA] AdSense ignoré en local (IP/LAN). Partenaires affichés. Force: localStorage.vendia_adsense_force=1');
+        return false;
+      }
+
+      const slot = document.getElementById('ad-slot');
+      const progress = document.getElementById('ad-progress');
+      if (!slot) return false;
+      if (progress) progress.style.display = 'none';
+
+      adMode = 'adsense';
+      slot.innerHTML = `
+        <div class="ad-adsense-wrap">
+          <ins class="adsbygoogle"
+               style="display:inline-block;width:320px;height:50px;max-width:100%"
+               data-ad-client="${escapeHtml(ADSENSE_CLIENT)}"
+               data-ad-slot="${escapeHtml(ADSENSE_SLOT || '0')}"
+               data-full-width-responsive="false"></ins>
+        </div>`;
+
+      const s = document.createElement('script');
+      s.async = true;
+      s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(ADSENSE_CLIENT)}`;
+      s.crossOrigin = 'anonymous';
+      s.onerror = () => {
+        adMode = 'partners';
+        if (progress) progress.style.display = '';
+        startPartnerRotation();
+      };
+      s.onload = () => {
+        try {
+          (window.adsbygoogle = window.adsbygoogle || []).push({});
+        } catch (e) {
+          adMode = 'partners';
+          if (progress) progress.style.display = '';
+          startPartnerRotation();
+        }
+        // Si pas de fill après 4s → fallback partenaires
+        setTimeout(() => {
+          const ins = slot.querySelector('ins.adsbygoogle');
+          const filled = ins && (ins.getAttribute('data-ad-status') === 'filled' || ins.innerHTML.trim().length > 20);
+          if (!filled && adMode === 'adsense') {
+            adMode = 'partners';
+            if (progress) progress.style.display = '';
+            startPartnerRotation();
+          }
+        }, 4000);
+      };
+      document.head.appendChild(s);
+      return true;
+    }
+
     function renderAdBanner() {
-      startAdRotation();
+      if (tryLoadAdSense()) return;
+      startPartnerRotation();
     }
 
     // ========== INIT ==========
