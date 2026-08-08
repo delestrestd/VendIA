@@ -1,139 +1,107 @@
 @echo off
-chcp 65001 >NUL
 setlocal EnableExtensions
-title VendIA - Etape 1 Installer l IA
+title VendIA Installer
 cd /d "%~dp0"
 
 echo.
 echo ============================================================
-echo   ETAPE 1 / 2 - INSTALLER L IA SUR CE PC
+echo   VENDIA - ETAPE 1 / 2 - INSTALLER L IA
 echo ============================================================
 echo.
-echo   Telecharge si besoin :
-echo     - Ollama portable  dans  ollama\
-echo     - Modele moondream dans  ollama\models\  (environ 1.7 Go)
-echo.
-echo   A faire UNE SEULE FOIS (ou si reinstall).
-echo   DataChef n est PAS touche (port 11434).
-echo ============================================================
+echo   Telecharge si besoin Ollama + modele moondream.
+echo   Une seule fois. DataChef non touche (port 11434).
 echo.
 pause
 
-set "ROOT=%~dp0"
-if "%ROOT:~-1%"=="\" set "ROOT=%ROOT:~0,-1%"
-
 set "VENDIA_PORT=11435"
-set "OLLAMA_DIR=%ROOT%\ollama"
+set "OLLAMA_DIR=%CD%\ollama"
 set "OLLAMA_MODELS=%OLLAMA_DIR%\models"
-set "ZIP=%ROOT%\_tmp_ollama.zip"
-set "URL=https://github.com/ollama/ollama/releases/latest/download/ollama-windows-amd64.zip"
 set "EXE=%OLLAMA_DIR%\ollama.exe"
+set "ZIP=%CD%\_tmp_ollama.zip"
+set "URL=https://github.com/ollama/ollama/releases/latest/download/ollama-windows-amd64.zip"
 
 echo.
 echo [1/4] Dossiers...
 if not exist "%OLLAMA_DIR%" mkdir "%OLLAMA_DIR%"
 if not exist "%OLLAMA_MODELS%" mkdir "%OLLAMA_MODELS%"
-echo       OK : %OLLAMA_DIR%
+echo       OK
 echo.
 
 echo [2/4] Binaire Ollama...
-if exist "%EXE%" goto OLLAMA_OK
+if exist "%EXE%" goto HAVE_EXE
 
-echo       Telechargement depuis GitHub...
-echo       URL  : %URL%
-echo       Vers : %ZIP%
+echo       Telechargement Ollama...
 curl.exe -L --retry 5 --retry-delay 2 -o "%ZIP%" "%URL%"
-if errorlevel 1 goto DL_FAIL
-if not exist "%ZIP%" goto DL_FAIL
+if errorlevel 1 goto FAIL_DL
+if not exist "%ZIP%" goto FAIL_DL
 
 echo       Extraction...
 powershell -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -LiteralPath '%ZIP%' -DestinationPath '%OLLAMA_DIR%' -Force"
-del /q "%ZIP%" 2>NUL
+if exist "%ZIP%" del /q "%ZIP%"
 
-if not exist "%EXE%" goto EXE_FAIL
-echo       OK - ollama.exe installe
-goto OLLAMA_OK
+if not exist "%EXE%" goto FAIL_EXE
+echo       OK ollama.exe installe
+goto HAVE_EXE
 
-:DL_FAIL
-echo.
-echo [ERREUR] Telechargement rate.
-echo          Verifie Internet, antivirus, puis relance.
-echo          ZIP attendu : %ZIP%
+:FAIL_DL
+echo [ERREUR] Telechargement rate. Verifie Internet.
 pause
 exit /b 1
 
-:EXE_FAIL
-echo [ERREUR] ollama.exe introuvable apres extraction dans :
-echo          %OLLAMA_DIR%
+:FAIL_EXE
+echo [ERREUR] ollama.exe introuvable apres extraction.
 pause
 exit /b 1
 
-:OLLAMA_OK
-echo       Deja pret : %EXE%
+:HAVE_EXE
+echo       Pret : %EXE%
 echo.
 
-echo [3/4] Demarrage temporaire d Ollama (port %VENDIA_PORT%)...
+echo [3/4] Demarrage Ollama port %VENDIA_PORT%...
 set "OLLAMA_HOST=127.0.0.1:%VENDIA_PORT%"
 set "OLLAMA_MODELS=%OLLAMA_MODELS%"
 set "OLLAMA_ORIGINS=*"
 
 curl.exe -s -m 2 "http://127.0.0.1:%VENDIA_PORT%/api/version" >NUL 2>&1
-if not errorlevel 1 goto OL_READY
+if not errorlevel 1 goto OL_UP
 
-echo       Lancement ollama serve...
-start "VendIA-Ollama-Install" /MIN cmd /c "set OLLAMA_HOST=127.0.0.1:%VENDIA_PORT%&& set OLLAMA_MODELS=%OLLAMA_MODELS%&& set OLLAMA_ORIGINS=*&& "%EXE%" serve"
+start "VendIA-Ollama" /MIN cmd /c "set OLLAMA_HOST=127.0.0.1:%VENDIA_PORT%&& set OLLAMA_MODELS=%OLLAMA_MODELS%&& set OLLAMA_ORIGINS=*&& "%EXE%" serve"
 
-set /a W=0
+set W=0
 :WAIT_OL
 timeout /t 1 /nobreak >NUL
 curl.exe -s -m 2 "http://127.0.0.1:%VENDIA_PORT%/api/version" >NUL 2>&1
-if not errorlevel 1 goto OL_READY
+if not errorlevel 1 goto OL_UP
 set /a W+=1
 if %W% LSS 45 goto WAIT_OL
-
-echo [ERREUR] Ollama ne demarre pas sur le port %VENDIA_PORT%.
-echo          Ferme les autres Ollama, ou relance en admin.
+echo [ERREUR] Ollama ne demarre pas.
 pause
 exit /b 1
 
-:OL_READY
-echo       OK - Ollama repond sur 127.0.0.1:%VENDIA_PORT%
+:OL_UP
+echo       OK Ollama en ligne
 echo.
 
-echo [4/4] Modele vision moondream...
+echo [4/4] Modele moondream...
 "%EXE%" list 2>NUL | find /I "moondream" >NUL
-if not errorlevel 1 (
-  echo       Deja present : moondream
-  goto DONE
-)
+if not errorlevel 1 goto HAVE_MODEL
 
-echo       Telechargement moondream (environ 1.7 Go) - laisse cette fenetre ouverte...
+echo       Pull moondream (environ 1.7 Go)...
 "%EXE%" pull moondream
 if errorlevel 1 (
-  echo.
-  echo [ERREUR] Echec pull moondream. Relance 1-INSTALLER.bat
+  echo [ERREUR] pull moondream echoue.
   pause
   exit /b 1
 )
 
-:DONE
+:HAVE_MODEL
+echo       OK moondream
 echo.
-echo Modeles installes :
-set "OLLAMA_HOST=127.0.0.1:%VENDIA_PORT%"
+echo Modeles :
 "%EXE%" list
 echo.
 echo ============================================================
-echo   ETAPE 1 TERMINEE
+echo   ETAPE 1 TERMINEE - lance ensuite 2-LANCER.bat
 echo ============================================================
-echo.
-echo   Suite :
-echo     1. Double-clic  2-LANCER.bat
-echo     2. Navigateur   http://127.0.0.1:8765/
-echo.
-echo   Telephone : meme Wi-Fi + IP affichee par 2-LANCER
-echo   Si tel bloque : 3-OUVRIR-RESEAU.bat en Administrateur
-echo ============================================================
-echo.
 pause
-endlocal
 exit /b 0
