@@ -318,40 +318,51 @@
       box-shadow: 0 8px 28px -6px rgba(15, 118, 110, 0.45), 0 1px 0 rgba(255,255,255,0.35) inset;
       border: 1px solid rgba(255, 255, 255, 0.25);
     }
+    /* Logo S2D : compact vs titre VendIA (le visuel a beaucoup de fond noir) */
     .logo-mark {
-      width: 2.35rem;
-      height: 2.35rem;
-      border-radius: 0.85rem;
+      width: 1.75rem;   /* ~28px — aligné sur le titre text-lg */
+      height: 1.75rem;
+      border-radius: 0.5rem;
       position: relative;
       overflow: hidden;
       flex-shrink: 0;
       background: #020617;
       box-shadow:
-        0 0 0 1px rgba(255,255,255,0.2) inset,
-        0 0 20px -4px rgba(37, 99, 235, 0.55),
-        0 10px 28px -8px rgba(15, 23, 42, 0.45);
+        0 0 0 1px rgba(255,255,255,0.18) inset,
+        0 0 12px -4px rgba(37, 99, 235, 0.45);
     }
     .logo-mark img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;          /* garde tout le monogramme */
       object-position: center;
       display: block;
+      transform: scale(1.55);       /* rogne le padding noir excessif */
+      transform-origin: center;
     }
     .logo-hero {
-      width: 7.25rem;
-      height: 7.25rem;
-      border-radius: 1.75rem;
+      width: 3.5rem;   /* onboarding : discret */
+      height: 3.5rem;
+      border-radius: 0.85rem;
+      margin-left: auto;
+      margin-right: auto;
       box-shadow:
-        0 0 0 1px rgba(255,255,255,0.25) inset,
-        0 0 48px -6px rgba(37, 99, 235, 0.65),
-        0 24px 50px -14px rgba(0, 0, 0, 0.45);
+        0 0 0 1px rgba(255,255,255,0.2) inset,
+        0 0 24px -6px rgba(37, 99, 235, 0.5);
     }
+    .logo-hero img { transform: scale(1.5); }
     .logo-home {
-      width: 4.25rem;
-      height: 4.25rem;
-      border-radius: 1.15rem;
-      margin: 0 auto 0.75rem;
+      width: 2.5rem;   /* accueil : sous le titre, pas au-dessus en monstre */
+      height: 2.5rem;
+      border-radius: 0.65rem;
+      margin: 0 auto 0.5rem;
+    }
+    .logo-home img { transform: scale(1.5); }
+    .brand-title-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      justify-content: center;
     }
     .lang-switch {
       display: inline-flex;
@@ -412,11 +423,11 @@
   <!-- ========== HEADER ========== -->
   <header id="app-header" class="fixed top-0 left-0 right-0 z-50 safe-top glass-nav border-b">
     <div class="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
-      <button type="button" onclick="showPage('home')" class="flex items-center gap-2.5 min-w-0 btn-press text-left" data-i18n-aria="nav.homeAria" aria-label="Accueil VendIA">
-        <div class="logo-mark" id="header-logo" aria-hidden="true"></div>
+      <button type="button" onclick="showPage('home')" class="flex items-center gap-2 min-w-0 btn-press text-left" data-i18n-aria="nav.homeAria" aria-label="Accueil VendIA">
+        <div class="logo-mark" id="header-logo" aria-hidden="true" title="S2D"></div>
         <div class="min-w-0">
-          <span class="font-extrabold text-lg tracking-tight leading-none block bg-gradient-to-r from-teal-700 via-teal-600 to-orange-500 dark:from-teal-300 dark:via-teal-200 dark:to-orange-300 bg-clip-text text-transparent">VendIA</span>
-          <p class="text-[10px] text-gray-500 dark:text-gray-400 leading-none mt-0.5 truncate" data-i18n="brand.tagline">sans contraintes</p>
+          <span class="font-extrabold text-base sm:text-lg tracking-tight leading-none block bg-gradient-to-r from-teal-700 via-teal-600 to-orange-500 dark:from-teal-300 dark:via-teal-200 dark:to-orange-300 bg-clip-text text-transparent">VendIA</span>
+          <p class="text-[9px] text-gray-500 dark:text-gray-400 leading-none mt-0.5 truncate" data-i18n="brand.tagline">sans contraintes</p>
         </div>
       </button>
       <div class="flex items-center gap-1">
@@ -452,14 +463,18 @@
     <section id="page-home" class="fade-in">
       <!-- Hero compact (masqué s'il y a des annonces) -->
       <div id="home-hero" class="mb-5">
-        <div class="glass rounded-3xl p-5 mb-4 text-center overflow-hidden relative">
+        <div class="glass rounded-3xl p-4 mb-4 text-center overflow-hidden relative">
           <div class="absolute inset-0 pointer-events-none opacity-40"
                style="background:radial-gradient(ellipse at 50% 0%, rgba(37,99,235,0.35), transparent 60%)"></div>
           <div class="relative">
-            <div class="logo-mark logo-home" id="home-logo" aria-hidden="true"></div>
-            <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-blue-600/80 dark:text-blue-300/90 mb-1" data-i18n="home.brandLine">Marque déposée · VendIA</p>
+            <div class="brand-title-row mb-2">
+              <div class="logo-mark logo-home" id="home-logo" aria-hidden="true" style="margin:0"></div>
+              <span class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-teal-700 via-teal-600 to-orange-500 dark:from-teal-300 dark:via-teal-200 dark:to-orange-300 bg-clip-text text-transparent">VendIA</span>
+            </div>
+            <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-600/80 dark:text-blue-300/90 mb-1" data-i18n="home.brandLine">Marque déposée · VendIA</p>
             <h1 class="text-xl font-black tracking-tight" data-i18n="home.heroTitle">Photo → IA → Prix</h1>
             <p class="text-gray-600 dark:text-gray-300 text-sm mt-1.5 max-w-xs mx-auto leading-relaxed" data-i18n="home.heroSub">L’IA prépare l’annonce. Tu restes libre.</p>
+            <p id="home-server-status" class="text-[11px] mt-2 text-gray-500 dark:text-gray-400"></p>
           </div>
         </div>
         <h2 class="text-base font-bold tracking-tight sr-only" data-i18n="home.heroTitle">Photo → IA → Prix</h2>
@@ -930,7 +945,7 @@
             <button type="button" onclick="setLang('en')" class="lang-btn-en">EN</button>
           </div>
         </div>
-        <div class="logo-mark logo-hero mb-5" id="onb-logo"></div>
+        <div class="logo-mark logo-hero mb-3" id="onb-logo"></div>
         <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-600/80 dark:text-blue-300/80 mb-2" data-i18n="onb.kicker">Seconde main · libre</p>
         <h1 class="text-3xl font-black tracking-tight leading-tight">
           <span class="bg-gradient-to-r from-teal-700 via-teal-500 to-orange-500 dark:from-teal-200 dark:via-teal-300 dark:to-orange-300 bg-clip-text text-transparent">VendIA</span>
@@ -971,7 +986,7 @@
     <!-- Légal / RGPD -->
     <div id="onb-legal" class="onb-scroll hidden max-w-lg mx-auto w-full">
       <div class="flex items-center gap-2 mb-3">
-        <div class="logo-mark" id="onb-logo-legal" style="width:2rem;height:2rem;border-radius:0.65rem"></div>
+        <div class="logo-mark" id="onb-logo-legal" style="width:1.5rem;height:1.5rem;border-radius:0.4rem"></div>
         <div>
           <h1 class="text-lg font-bold" data-i18n="onb.legalTitle">Conditions & confidentialité</h1>
           <p class="text-[11px] text-gray-500"><span data-i18n="onb.legalVer">Version</span> <span id="onb-legal-ver"></span> — <span data-i18n="onb.legalReq">lecture requise</span></p>
@@ -1001,7 +1016,7 @@
     <!-- Création profil -->
     <div id="onb-profile" class="onb-scroll hidden max-w-lg mx-auto w-full">
       <div class="text-center mb-5">
-        <div class="logo-mark mx-auto mb-3" id="onb-logo-profile" style="width:3rem;height:3rem;border-radius:0.9rem"></div>
+        <div class="logo-mark mx-auto mb-2" id="onb-logo-profile" style="width:2rem;height:2rem;border-radius:0.5rem"></div>
         <h1 class="text-xl font-bold" data-i18n="onb.profileTitle">Crée ton profil vendeur</h1>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" data-i18n="onb.profileSub">Visible sur tes annonces · modifiable à tout moment</p>
       </div>
@@ -1227,12 +1242,13 @@
     const BRAND_LOGO = 'assets/logo-brand.jpg';
 
     function logoHTML(alt) {
-      return `<img src="${BRAND_LOGO}" alt="${escapeHtml(alt || 'VendIA')}" width="128" height="128" decoding="async" />`;
+      const a = (typeof escapeHtml === 'function') ? escapeHtml(alt || 'S2D') : 'S2D';
+      return `<img src="${BRAND_LOGO}" alt="${a}" width="64" height="64" decoding="async" onerror="this.style.display='none';this.parentElement.style.background='linear-gradient(135deg,#0f766e,#2563eb)'" />`;
     }
 
     function mountLogos() {
       document.querySelectorAll('#header-logo, #home-logo, #onb-logo, #onb-logo-legal, #onb-logo-profile').forEach(el => {
-        if (el) el.innerHTML = logoHTML('VendIA');
+        if (el) el.innerHTML = logoHTML('S2D · VendIA');
       });
     }
 
@@ -2756,21 +2772,31 @@
       const cfg = getEffectiveAIConfig();
       const dot = document.getElementById('ai-mode-dot');
       const hint = document.getElementById('ai-provider-hint');
+      const homeSt = document.getElementById('home-server-status');
+      const offline = !netState.baseUrl || /injoignable|lance Lancer/i.test(netState.label || '');
       if (dot) {
-        const ok = cfg.provider === 'ollama' && netState.baseUrl && !/injoignable/i.test(netState.label || '');
+        const ok = cfg.provider === 'ollama' && netState.baseUrl && !offline;
         dot.className = 'absolute top-2 right-2 w-2 h-2 rounded-full ring-2 ring-white dark:ring-gray-900 ' +
           (cfg.provider === 'mock' ? 'bg-gray-300 dark:bg-gray-600' : cfg.free === false ? 'bg-accent' : ok ? 'bg-emerald-500' : 'bg-amber-400');
       }
       if (hint) {
         if (cfg.provider === 'ollama') {
-          const offline = !netState.baseUrl || /injoignable|lance Lancer/i.test(netState.label || '');
           hint.textContent = offline
-            ? 'Ollama actif — lance Lancer VendIA.bat sur le PC pour analyser'
+            ? 'Ollama — PC : lance 2-LANCER.bat pour analyser'
             : `Ollama · ${cfg.model || 'moondream'} · ${netState.label || 'connecté'}`;
         } else if (cfg.provider === 'mock') {
           hint.textContent = 'Mode simulation (sans analyse réelle)';
         } else {
           hint.textContent = `${cfg.label}${cfg.model ? ' · ' + cfg.model : ''} · ${netState.label || ''}`;
+        }
+      }
+      if (homeSt) {
+        if (cfg.provider === 'ollama' && !offline) {
+          homeSt.innerHTML = '<span class="text-emerald-600 dark:text-emerald-400">● IA PC connectée</span>';
+        } else if (cfg.provider === 'ollama') {
+          homeSt.innerHTML = '<span class="text-amber-600 dark:text-amber-400">● IA hors ligne — lance <strong>2-LANCER.bat</strong> sur le PC</span>';
+        } else {
+          homeSt.textContent = '';
         }
       }
       const ban = document.getElementById('lan-phone-banner');
