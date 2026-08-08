@@ -120,6 +120,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._runtime()
         if path in ("/vendia/health", "/vendia/status"):
             return self._health()
+        if path in ("/phone", "/mobile", "/tel"):
+            return self._phone_page()
         if path.startswith("/v1/") or path.startswith("/api/") or path in ("/v1", "/api"):
             return self._proxy()
         return self._static()
@@ -188,6 +190,141 @@ class Handler(BaseHTTPRequestHandler):
             info["message"] = f"Ollama arrêté. Lance 2-LANCER.bat ({e.__class__.__name__})"
         # Toujours 200 pour que le navigateur / curl affichent le JSON (ok: true/false)
         self._json(200, info)
+
+    def _phone_page(self):
+        """Page PC : QR + URL pour ouvrir VendIA sur le téléphone (objectif principal)."""
+        ip = lan_ip()
+        phone_url = f"http://{ip}:{PORT}/"
+        # health rapide
+        ok = False
+        msg = "Ollama non detecte"
+        try:
+            st, raw, _ = ollama_get("/api/tags", timeout=1.5)
+            if st == 200:
+                payload = json.loads(raw.decode("utf-8", errors="replace"))
+                models = [m.get("name", "") for m in payload.get("models", [])]
+                ok = any("moondream" in m.lower() for m in models)
+                msg = "IA prete (moondream)" if ok else "Ollama OK mais moondream manquant"
+        except Exception:
+            msg = "Ollama arrete — relance 2-LANCER.bat"
+
+        # QR via API publique (si offline, l'URL texte reste)
+        from urllib.parse import quote
+        qr = f"https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=10&data={quote(phone_url, safe='')}"
+        status_color = "#059669" if ok else "#d97706"
+        status_bg = "#ecfdf5" if ok else "#fffbeb"
+
+        html = f"""<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>VendIA — Ouvre sur ton téléphone</title>
+  <style>
+    * {{ box-sizing: border-box; }}
+    body {{
+      margin: 0; min-height: 100vh; font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      background: linear-gradient(165deg, #e8eef5, #f4f7fb 40%, #eef2f7);
+      color: #0f172a; display: flex; align-items: center; justify-content: center; padding: 1.25rem;
+    }}
+    .card {{
+      width: 100%; max-width: 420px; background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(16px); border-radius: 1.5rem; padding: 1.5rem 1.25rem 1.75rem;
+      box-shadow: 0 12px 40px -12px rgba(15,23,42,0.18); border: 1px solid rgba(255,255,255,0.7);
+      text-align: center;
+    }}
+    h1 {{ font-size: 1.35rem; margin: 0 0 0.35rem; letter-spacing: -0.02em; }}
+    .sub {{ color: #64748b; font-size: 0.9rem; margin: 0 0 1.25rem; line-height: 1.4; }}
+    .qr {{
+      background: #fff; border-radius: 1rem; padding: 0.75rem; display: inline-block;
+      box-shadow: 0 4px 16px -4px rgba(15,23,42,0.12); margin-bottom: 1rem;
+    }}
+    .qr img {{ display: block; width: 260px; height: 260px; max-width: 70vw; height: auto; }}
+    .url {{
+      font-size: 1.05rem; font-weight: 800; word-break: break-all;
+      background: #0f766e; color: #fff; padding: 0.85rem 1rem; border-radius: 0.9rem;
+      margin: 0.5rem 0 0.75rem; line-height: 1.35;
+    }}
+    .steps {{ text-align: left; font-size: 0.88rem; color: #334155; margin: 1rem 0 0; padding: 0; list-style: none; }}
+    .steps li {{
+      padding: 0.55rem 0.65rem; margin-bottom: 0.4rem; border-radius: 0.75rem;
+      background: #f1f5f9; display: flex; gap: 0.55rem; align-items: flex-start;
+    }}
+    .steps b {{
+      flex-shrink: 0; width: 1.35rem; height: 1.35rem; border-radius: 999px;
+      background: #0f766e; color: #fff; font-size: 0.75rem; display: flex;
+      align-items: center; justify-content: center;
+    }}
+    .status {{
+      display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; font-weight: 600;
+      padding: 0.35rem 0.75rem; border-radius: 999px; margin-bottom: 1rem;
+      background: {status_bg}; color: {status_color};
+    }}
+    .dot {{ width: 8px; height: 8px; border-radius: 999px; background: {status_color}; }}
+    button, .btn {{
+      display: block; width: 100%; border: 0; border-radius: 0.9rem; padding: 0.85rem 1rem;
+      font-size: 0.95rem; font-weight: 700; cursor: pointer; margin-top: 0.5rem; text-decoration: none;
+    }}
+    .btn-copy {{ background: #0f766e; color: #fff; }}
+    .btn-pc {{ background: #e2e8f0; color: #0f172a; }}
+    .hint {{ font-size: 0.75rem; color: #94a3b8; margin-top: 1rem; line-height: 1.4; }}
+    .warn {{
+      font-size: 0.8rem; color: #b45309; background: #fffbeb; border-radius: 0.75rem;
+      padding: 0.65rem 0.75rem; margin-top: 0.75rem; text-align: left; line-height: 1.35;
+    }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="status"><span class="dot"></span> {msg}</div>
+    <h1>Ouvre VendIA sur ton téléphone</h1>
+    <p class="sub">Le PC reste allumé (IA). Le téléphone sert à prendre les photos.</p>
+
+    <div class="qr">
+      <img src="{qr}" alt="QR code VendIA" width="280" height="280"
+           onerror="this.parentElement.innerHTML='<p style=\\'padding:2rem;color:#64748b\\'>QR indisponible hors-ligne — tape l’URL ci-dessous</p>'" />
+    </div>
+
+    <div class="url" id="phone-url">{phone_url}</div>
+    <button type="button" class="btn-copy" onclick="copyUrl()">Copier le lien téléphone</button>
+    <a class="btn btn-pc" href="/">Ouvrir l’app sur ce PC</a>
+
+    <ol class="steps">
+      <li><b>1</b><span>Téléphone et PC sur le <strong>même Wi‑Fi</strong> (pas le partage 4G du tel)</span></li>
+      <li><b>2</b><span><strong>Scanne le QR</strong> ou colle le lien dans Safari / Chrome</span></li>
+      <li><b>3</b><span>Autorise la caméra → photo → analyse IA</span></li>
+    </ol>
+
+    <div class="warn">
+      Si le téléphone ne charge pas la page : sur le PC, lance
+      <strong>3-OUVRIR-RESEAU.bat</strong> en Administrateur, puis relance
+      <strong>2-LANCER.bat</strong>.
+    </div>
+    <p class="hint">Laisse les fenêtres VendIA-Ollama et VendIA-Gateway ouvertes sur le PC.</p>
+  </div>
+  <script>
+    function copyUrl() {{
+      const u = document.getElementById('phone-url').textContent.trim();
+      if (navigator.clipboard && navigator.clipboard.writeText) {{
+        navigator.clipboard.writeText(u).then(function() {{ alert('Lien copié : ' + u); }});
+      }} else {{
+        prompt('Copie ce lien :', u);
+      }}
+    }}
+  </script>
+</body>
+</html>"""
+        data = html.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self._cors()
+        self.end_headers()
+        try:
+            self.wfile.write(data)
+        except _BENIGN_NET:
+            pass
 
     def _proxy(self):
         path = self.path
@@ -288,13 +425,12 @@ def main():
     OLLAMA = args.ollama.replace("http://", "").replace("https://", "").rstrip("/")
     httpd = QuietThreadingHTTPServer((args.bind, args.port), Handler)
     ip = lan_ip()
-    print(f"[VendIA] gateway http://{args.bind}:{args.port}/  →  Ollama {OLLAMA}", flush=True)
-    print(f"[VendIA] PC     : http://127.0.0.1:{args.port}/", flush=True)
-    print(f"[VendIA] Tel Wi‑Fi : http://{ip}:{args.port}/", flush=True)
-    print(f"[VendIA] Santé : http://127.0.0.1:{args.port}/vendia/health", flush=True)
-    print("[VendIA] Le modèle reste sur cet ordinateur. Ne ferme pas cette fenêtre.", flush=True)
-    print("[VendIA] Si tu vois « ConnectionReset » : ce n'est pas grave (navigateur).", flush=True)
-    print("[VendIA] App OK si tu as des lignes GET … 200", flush=True)
+    print(f"[VendIA] gateway → Ollama {OLLAMA}", flush=True)
+    print(f"[VendIA] MOBILE (principal) : http://{ip}:{args.port}/", flush=True)
+    print(f"[VendIA] QR + aide         : http://127.0.0.1:{args.port}/phone", flush=True)
+    print(f"[VendIA] PC                : http://127.0.0.1:{args.port}/", flush=True)
+    print(f"[VendIA] Sante             : http://127.0.0.1:{args.port}/vendia/health", flush=True)
+    print("[VendIA] Objectif = telephone. Laisse cette fenetre ouverte.", flush=True)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

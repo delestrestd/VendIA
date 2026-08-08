@@ -520,9 +520,13 @@
         </div>
 
         <!-- Mode téléphone ↔ PC -->
-        <div id="lan-phone-banner" class="mt-3 hidden p-3 rounded-2xl border border-teal-100 dark:border-teal-800 bg-teal-50 dark:bg-teal-900/25">
-          <p class="text-xs font-bold text-teal-900 dark:text-teal-200"><i class="fas fa-mobile-screen-button mr-1"></i> Mode téléphone + IA du PC</p>
-          <p id="lan-phone-detail" class="text-[11px] text-teal-800 dark:text-teal-300/90 mt-1 leading-snug"></p>
+        <div id="lan-phone-banner" class="mt-3 p-3.5 rounded-2xl border-2 border-teal-200 dark:border-teal-700 bg-teal-50 dark:bg-teal-900/30">
+          <p class="text-sm font-bold text-teal-900 dark:text-teal-100"><i class="fas fa-mobile-screen-button mr-1"></i> Mode mobile</p>
+          <p id="lan-phone-detail" class="text-xs text-teal-800 dark:text-teal-300/90 mt-1 leading-snug">Connexion à l’IA du PC…</p>
+          <button type="button" id="btn-mobile-sell" onclick="startSell(true)"
+                  class="mt-3 w-full py-3.5 rounded-xl font-bold text-white bg-primary shadow-lg shadow-primary/25 btn-press text-base">
+            <i class="fas fa-camera mr-2"></i> Photographier un article
+          </button>
         </div>
       </div>
 
@@ -2803,12 +2807,17 @@
       const det = document.getElementById('lan-phone-detail');
       if (ban && det) {
         ban.classList.remove('hidden');
-        const kind = netState.mode === 'cellular' ? '📡 Réseau mobile (4G/5G)'
+        const isPhone = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent || '')
+          || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+        const kind = netState.mode === 'cellular' ? '📡 4G/5G'
           : netState.mode === 'wifi' ? '📶 Wi‑Fi'
-          : '🔀 Réseau';
-        det.innerHTML = `${kind} · <strong>${escapeHtml(netState.label || '…')}</strong><br>
-          <span class="opacity-90">IA : ${escapeHtml(cfg.provider === 'ollama' ? (cfg.baseUrl || '—') : cfg.provider)}</span>
-          ${netState.publicUrl ? `<br><span class="opacity-80">Tunnel mémorisé pour la 4G</span>` : ''}`;
+          : (isPhone ? '📱 Téléphone' : '💻 PC');
+        const iaOk = cfg.provider === 'ollama' && !offline;
+        det.innerHTML = iaOk
+          ? `${kind} · <strong class="text-emerald-700 dark:text-emerald-300">IA du PC connectée</strong> — prêt à photographier`
+          : `${kind} · <strong class="text-amber-700 dark:text-amber-300">IA hors ligne</strong> — sur le PC : 2-LANCER.bat`;
+        const btn = document.getElementById('btn-mobile-sell');
+        if (btn) btn.classList.toggle('opacity-50', !iaOk && cfg.provider === 'ollama');
       }
     }
 
