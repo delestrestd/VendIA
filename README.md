@@ -70,18 +70,19 @@ Accès dans l’app : carte **Robot prix** sur l’accueil.
 - **Repo** : [github.com/delestrestd/VendIA](https://github.com/delestrestd/VendIA)
 - **Démo mobile (GitHub Pages)** : [delestrestd.github.io/VendIA](https://delestrestd.github.io/VendIA/)
 
-## Installation (lisible)
+## Usage (mobile d’abord)
 
-**Guide pas à pas :** [`INSTALLATION.md`](INSTALLATION.md)
+**Guide téléphone :** [`MOBILE.md`](MOBILE.md) · install : [`INSTALLATION.md`](INSTALLATION.md)
 
-| Ordre | Fichier | Quand |
-|-------|---------|--------|
-| 0 | `0-DIAGNOSTIC.bat` | Si ça ne marche pas |
-| **1** | **`1-INSTALLER.bat`** | **Une fois** (télécharge Ollama + moondream) |
-| **2** | **`2-LANCER.bat`** | **Chaque usage** (allume le serveur) |
-| 3 | Navigateur | **http://127.0.0.1:8765/** · Tel : `http://IP-PC:8765/` |
+| Ordre | Fichier | Rôle |
+|-------|---------|------|
+| 1× | `1-INSTALLER.bat` | IA sur le PC |
+| 1× | `3-OUVRIR-RESEAU.bat` (Admin) | Pare-feu pour le téléphone |
+| Chaque fois | **`2-LANCER.bat`** | Allume l’IA + **ouvre le QR** |
+| Téléphone | Scan QR ou `http://IP:8765/` | **Photos + vente** |
 
-> N’ouvre **pas** `index.html` tout seul : sans `2-LANCER.bat`, le serveur IA ne répond pas.
+PC = cerveau (reste allumé). Téléphone = caméra.  
+Page QR : http://127.0.0.1:8765/phone
 
 ## Brancher un vrai modèle IA
 
